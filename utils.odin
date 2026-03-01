@@ -24,6 +24,41 @@ non_zero_resize_dynamic_array :: proc(array: ^$T/[dynamic]$E, #any_int length: i
 	return runtime._resize_dynamic_array((^runtime.Raw_Dynamic_Array)(array), size_of(E), align_of(E), length, false, loc=loc)
 }
 
+_resize_slice :: #force_no_inline proc(a: ^runtime.Raw_Slice, size_of_elem, align_of_elem: int, length: int, should_zero: bool, allocator: runtime.Allocator, loc := #caller_location) -> runtime.Allocator_Error {
+	if a == nil {
+		return nil
+	}
+
+	old_size  := a.len  * size_of_elem
+	new_size  := length * size_of_elem
+
+	new_data : []byte
+	if should_zero {
+		new_data = runtime.mem_resize(a.data, old_size, new_size, align_of_elem, allocator, loc) or_return
+	} else {
+		new_data = runtime.non_zero_mem_resize(a.data, old_size, new_size, align_of_elem, allocator, loc) or_return
+	}
+	if new_data == nil && new_size > 0 {
+		return .Out_Of_Memory
+	}
+
+	a.data = raw_data(new_data)
+	
+	if should_zero && a.len < length {
+		intrinsics.mem_zero(([^]byte)(a.data)[a.len*size_of_elem:], (length - a.len)*size_of_elem)
+	}
+	a.len = length
+	return nil
+}
+
+non_zero_resize_slice :: proc(slice: ^$T/[]$E, #any_int length: int, allocator := context.allocator, loc := #caller_location) -> runtime.Allocator_Error {
+	return _resize_slice((^runtime.Raw_Slice)(slice), size_of(E), align_of(E), length, false, allocator, loc=loc)
+}
+
+resize_slice :: proc(slice: ^$T/[]$E, #any_int length: int, allocator := context.allocator, loc := #caller_location) -> runtime.Allocator_Error {
+	return _resize_slice((^runtime.Raw_Slice)(slice), size_of(E), align_of(E), length, true, allocator, loc=loc)
+}
+
 // digit-by-digit integer sqrt (port of C sqrt_i64) https://github.com/chmike/fpsqrt
 @(require_results)
 sqrt_i64 :: #force_inline proc "contextless" (v: i64) -> i64 {
