@@ -3,6 +3,7 @@ package utils_private
 import "base:intrinsics"
 import "base:runtime"
 import "core:math"
+import "core:thread"
 import "core:math/linalg"
 import "core:mem"
 
@@ -17,6 +18,18 @@ make_non_zeroed_slice :: #force_inline proc($T:typeid/[]$E, #any_int len: int, a
 	}
 	(^runtime.Raw_Slice)(&res).data = raw_data(data)
 	(^runtime.Raw_Slice)(&res).len  = len
+	return
+}
+
+make_non_zeroed_dynamic_array_len_cap :: #force_inline proc($T:typeid/[dynamic]$E, #any_int len,cap: int, allocator := context.allocator, loc := #caller_location) -> (res:T, err: runtime.Allocator_Error) #optional_allocator_error {
+    runtime.make_dynamic_array_error_loc(loc, len)
+    array := (^Raw_Dynamic_Array)(&res)
+    array.allocator = allocator // initialize allocator before just in case it fails to allocate any memory
+	data := runtime.mem_alloc_non_zeroed(size_of_elem*cap, align_of_elem, allocator, loc) or_return
+	use_zero := data == nil && size_of_elem != 0
+	array.data = raw_data(data)
+	array.len = 0 if use_zero else len
+	array.cap = 0 if use_zero else cap
 	return
 }
 
@@ -196,4 +209,13 @@ epsilon :: proc "contextless" ($T: typeid) -> T where intrinsics.type_is_float(T
 @(require_results)
 epsilon_equal :: proc "contextless" (a:$T, b:T) -> bool where intrinsics.type_is_float(T) {
 	return abs(a - b) < epsilon(T)
+}
+
+pool_wait_all :: proc(pool: ^thread.Pool) {
+	for 0 < thread.pool_num_outstanding(pool) {
+		thread.yield()
+	}
+	for {
+		thread.pool_pop_done(pool) or_break
+	}
 }
