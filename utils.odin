@@ -1,4 +1,3 @@
-#+private
 package utils_private
 
 import "base:intrinsics"
@@ -26,6 +25,7 @@ non_zero_resize_dynamic_array :: proc(array: ^$T/[dynamic]$E, #any_int length: i
 }
 
 // digit-by-digit integer sqrt (port of C sqrt_i64) https://github.com/chmike/fpsqrt
+@(require_results)
 sqrt_i64 :: #force_inline proc "contextless" (v: i64) -> i64 {
     b := u64(1) << 62
     q: u64 = 0
@@ -51,11 +51,13 @@ sign :: #force_inline proc "contextless" (v: $T/fixed.Fixed($Backing, $Fraction_
 }
 
 // [2]FixedDef vector difference
+@(require_results)
 sub2_fixed :: #force_inline proc "contextless" (a, b: [2]$T/fixed.Fixed($Backing, $Fraction_Width)) -> [2]T {
     return {fixed.sub(a.x, b.x), fixed.sub(a.y, b.y)}
 }
 
 // squared length (x*x + y*y), fixed-Vector2f32
+@(require_results)
 length2_fixed :: #force_inline proc "contextless" (v: [2]$T/fixed.Fixed($Backing, $Fraction_Width)) -> T {
     return fixed.add(fixed.mul(v.x, v.x), fixed.mul(v.y, v.y))
 }
@@ -110,4 +112,53 @@ non_zero_inject_at_elems :: proc(array: ^$T/[dynamic]$E, #any_int index: int, #n
 @(require_results)
 invent_bool :: #force_inline proc "contextless" (b, check:bool) -> bool {
 	return check ? !b : b
+}
+
+@(require_results)
+ceil_up :: proc "contextless"(num:$T, multiple:T) -> T where intrinsics.type_is_integer(T) {
+	if multiple == 0 do return num
+
+	remain := abs(num) % multiple
+	if remain == 0 do return num
+
+	if num < 0 do return -(abs(num) + multiple - remain)
+	return num + multiple - remain
+}
+@(require_results)
+floor_up :: proc "contextless"(num:$T, multiple:T) -> T where intrinsics.type_is_integer(T) {
+	if multiple == 0 do return num
+
+	remain := abs(num) % multiple
+	if remain == 0 do return num
+
+	if num < 0 do return -(abs(num) - remain)
+	return num - remain
+}
+@(require_results)
+min_array :: proc "contextless" (value0:$T/[$N]$E, value1:T) -> (result:T) where intrinsics.type_is_array(T) {
+	#unroll for i in 0..<len(value0)  {
+		m : E = value0[i]
+		if m > value1[i] do m = value1[i]
+		result[i] = m
+	}
+	return
+}
+@(require_results)
+max_array :: proc "contextless" (value0:$T/[$N]$E, value1:T) -> (result:T) where intrinsics.type_is_array(T) {
+	#unroll for i in 0..<len(value0)  {
+		m : E = value0[i]
+		if m < value1[i] do m = value1[i]
+		result[i] = m
+	}
+	return
+}
+@(require_results)
+epsilon :: proc "contextless" ($T: typeid) -> T where intrinsics.type_is_float(T) {
+	when T == f16 || T == f16be || T == f16le do return T(math.F16_EPSILON)
+	when T == f32 || T == f32be || T == f32le do return T(math.F32_EPSILON)
+	return T(math.F64_EPSILON)
+}
+@(require_results)
+epsilon_equal :: proc "contextless" (a:$T, b:T) -> bool where intrinsics.type_is_float(T) {
+	return abs(a - b) < epsilon(T)
 }
