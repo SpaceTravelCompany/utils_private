@@ -24,7 +24,7 @@ make_non_zeroed_slice :: #force_inline proc($T:typeid/[]$E, #any_int len: int, a
 
 make_non_zeroed_dynamic_array_len_cap :: #force_inline proc($T:typeid/[dynamic]$E, #any_int len,cap: int, allocator := context.allocator, loc := #caller_location) -> (res:T, err: runtime.Allocator_Error) #optional_allocator_error {
     runtime.make_dynamic_array_error_loc(loc, len, cap)
-    array := (^Raw_Dynamic_Array)(&res)
+    array := (^runtime.Raw_Dynamic_Array)(&res)
     array.allocator = allocator // initialize allocator before just in case it fails to allocate any memory
 	data := runtime.mem_alloc_non_zeroed(size_of(E)*cap, align_of(E), allocator, loc) or_return
 	use_zero := data == nil && size_of(E) != 0
