@@ -92,25 +92,6 @@ sqrt_i64 :: #force_inline proc "contextless" (v: i64) -> i64 {
     return i64(q)
 }
 
-// Flip the sign (positive ↔ negative)
-@(require_results)
-sign :: #force_inline proc "contextless" (v: $T/fixed.Fixed($Backing, $Fraction_Width)) -> (r: T) {
-	r.i = -r.i
-	return
-}
-
-// [2]FixedDef vector difference
-@(require_results)
-sub2_fixed :: #force_inline proc "contextless" (a, b: [2]$T/fixed.Fixed($Backing, $Fraction_Width)) -> [2]T {
-    return {fixed.sub(a.x, b.x), fixed.sub(a.y, b.y)}
-}
-
-// squared length (x*x + y*y), fixed-Vector2f32
-@(require_results)
-length2_fixed :: #force_inline proc "contextless" (v: [2]$T/fixed.Fixed($Backing, $Fraction_Width)) -> T {
-    return fixed.add(fixed.mul(v.x, v.x), fixed.mul(v.y, v.y))
-}
-
 // `inject_at_elem` injects an element in a dynamic array at a specified index and moves the previous elements after that index "across"
 non_zero_inject_at_elem :: proc(array: ^$T/[dynamic]$E, #any_int index: int, #no_broadcast arg: E, loc := #caller_location) -> (ok: bool, err: runtime.Allocator_Error) #no_bounds_check #optional_allocator_error {
 	when !ODIN_NO_BOUNDS_CHECK {
