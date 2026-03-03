@@ -211,3 +211,11 @@ epsilon :: proc "contextless" ($T: typeid) -> T where intrinsics.type_is_float(T
 epsilon_equal :: proc "contextless" (a:$T, b:T) -> bool where intrinsics.type_is_float(T) {
 	return abs(a - b) < epsilon(T)
 }
+
+Prev :: proc "contextless" (#any_int idx: int, #any_int len: int) -> int {
+	return idx == 0 ? len - 1 : idx - 1
+}
+
+Next :: proc "contextless" (#any_int idx: int, #any_int len: int) -> int {
+	return (idx + 1) % len
+}
