@@ -82,10 +82,6 @@ init :: proc "contextless" (
 	}
 }
 
-// ──────────────────────────────────────────
-// 출력
-// ──────────────────────────────────────────
-
 to_string :: proc(a: $T/BCD, allocator := context.allocator) -> string {
 	FRAC :: type_of(a).FRAC_DIGITS
 	scale := _scale(FRAC)
@@ -106,10 +102,6 @@ to_string :: proc(a: $T/BCD, allocator := context.allocator) -> string {
 	)
 }
 
-// ──────────────────────────────────────────
-// 덧셈 / 뺄셈
-// ──────────────────────────────────────────
-
 add :: proc "contextless" (a, b: $T/BCD) -> T {
 	return T{i = a.i + b.i}
 }
@@ -118,27 +110,17 @@ sub :: proc "contextless" (a, b: $T/BCD) -> T {
 	return T{i = a.i - b.i}
 }
 
-// ──────────────────────────────────────────
-// 곱셈
-// ──────────────────────────────────────────
 mul :: proc "contextless" (a, b: $T/BCD) -> T {
 	FRAC :: type_of(a).FRAC_DIGITS
 	scale := _scale(FRAC)
 	return T{i = a.i * b.i / scale}
 }
 
-// ──────────────────────────────────────────
-// 나눗셈
-// ──────────────────────────────────────────
 div :: proc "contextless" (a, b: $T/BCD) -> T {
 	FRAC :: type_of(a).FRAC_DIGITS
 	scale := _scale(FRAC)
 	return T{i = a.i * scale / b.i}
 }
-
-// ──────────────────────────────────────────
-// 비교
-// ──────────────────────────────────────────
 
 cmp :: proc "contextless" (a, b: $T/BCD) -> int {
 	if a.i > b.i do return 1
@@ -150,9 +132,6 @@ eq :: proc "contextless" (a, b: $T/BCD) -> bool {return a.i == b.i}
 lt :: proc "contextless" (a, b: $T/BCD) -> bool {return a.i < b.i}
 gt :: proc "contextless" (a, b: $T/BCD) -> bool {return a.i > b.i}
 
-// ──────────────────────────────────────────
-// 변환
-// ──────────────────────────────────────────
 
 to_f64 :: proc "contextless" (a: $T/BCD) -> f64 {
 	FRAC :: type_of(a).FRAC_DIGITS

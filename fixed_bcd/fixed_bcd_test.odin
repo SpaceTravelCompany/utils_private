@@ -4,14 +4,10 @@ import "core:fmt"
 import "core:testing"
 
 
-// ──────────────────────────────────────────
-// 테스트
-// ──────────────────────────────────────────
-
 @(test)
 test_from_f64 :: proc(t: ^testing.T) {
 	a := from_f64(13, 3.1415926535)
-	fmt.println("[from_f64 π]", to_string(a))
+	fmt.println("[from_f64 π]", to_string(a, context.temp_allocator))
 }
 
 @(test)
@@ -19,7 +15,7 @@ test_add :: proc(t: ^testing.T) {
 	a := from_f64(13, 2.1334)
 	b := from_f64(13, 2.1334)
 	r := add(a, b)
-	fmt.println("[add] 2.1334 + 2.1334 =", to_string(r))
+	fmt.println("[add] 2.1334 + 2.1334 =", to_string(r, context.temp_allocator))
 }
 
 @(test)
@@ -27,7 +23,7 @@ test_add_carry :: proc(t: ^testing.T) {
 	a := from_f64(13, 9.9)
 	b := from_f64(13, 0.1)
 	r := add(a, b)
-	fmt.println("[add_carry] 9.9 + 0.1 =", to_string(r))
+	fmt.println("[add_carry] 9.9 + 0.1 =", to_string(r, context.temp_allocator))
 }
 
 @(test)
@@ -35,7 +31,7 @@ test_sub :: proc(t: ^testing.T) {
 	a := from_f64(13, 130.0)
 	b := from_f64(13, 0.1)
 	r := sub(a, b)
-	fmt.println("[sub] 130.0 - 0.1 =", to_string(r))
+	fmt.println("[sub] 130.0 - 0.1 =", to_string(r, context.temp_allocator))
 }
 
 @(test)
@@ -43,7 +39,7 @@ test_sub_negative :: proc(t: ^testing.T) {
 	a := from_f64(13, -133.456)
 	b := from_f64(13, 130.0)
 	r := sub(a, b)
-	fmt.println("[sub_negative] -133.456 - 130.0 =", to_string(r))
+	fmt.println("[sub_negative] -133.456 - 130.0 =", to_string(r, context.temp_allocator))
 }
 
 @(test)
@@ -51,7 +47,7 @@ test_mul :: proc(t: ^testing.T) {
 	a := from_f64(13, 2.1334)
 	b := from_f64(13, 2.1334)
 	r := mul(a, b)
-	fmt.println("[mul] 2.1334 × 2.1334 =", to_string(r))
+	fmt.println("[mul] 2.1334 × 2.1334 =", to_string(r, context.temp_allocator))
 	fmt.println("[mul] 기댓값          = 4.5088275600000")
 }
 
@@ -60,7 +56,7 @@ test_mul_big :: proc(t: ^testing.T) {
 	a := from_f64(13, 50000) //50000 cover max 13
 	b := from_f64(13, 50000)
 	r := mul(a, b)
-	fmt.println("[mul] 50000 × 50000 =", to_string(r))
+	fmt.println("[mul] 50000 × 50000 =", to_string(r, context.temp_allocator))
 	fmt.println("[mul] 기댓값        = 2500000000.0000000000000")
 }
 
@@ -69,7 +65,7 @@ test_mul_negative :: proc(t: ^testing.T) {
 	a := from_f64(13, -2.0)
 	b := from_f64(13, 3.0)
 	r := mul(a, b)
-	fmt.println("[mul_negative] -2.0 × 3.0 =", to_string(r))
+	fmt.println("[mul_negative] -2.0 × 3.0 =", to_string(r, context.temp_allocator))
 }
 
 @(test)
@@ -77,7 +73,7 @@ test_div :: proc(t: ^testing.T) {
 	a := from_f64(13, 13.0)
 	b := from_f64(13, 4.0)
 	r := div(a, b)
-	fmt.println("[div] 13.0 / 4.0 =", to_string(r))
+	fmt.println("[div] 13.0 / 4.0 =", to_string(r, context.temp_allocator))
 }
 
 @(test)
@@ -108,8 +104,8 @@ test_to_f64 :: proc(t: ^testing.T) {
 @(test)
 test_init :: proc(t: ^testing.T) {
 	a := init(2, 1334, 13)
-	fmt.println("[init] 2.1334 =", to_string(a))
+	fmt.println("[init] 2.1334 =", to_string(a, context.temp_allocator))
 	b := init(-2, 1334, 13)
-	fmt.println("[init] 2.1334 =", to_string(b))
+	fmt.println("[init] 2.1334 =", to_string(b, context.temp_allocator))
 }
 
