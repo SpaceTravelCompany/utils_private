@@ -8,7 +8,7 @@ BCD :: struct($FRAC_DIGITS: int) {
 	i: i128, // 스케일된 값 (부호 포함)
 }
 
-// 10^n table for scale lookup, n=0..15 (i128 fits up to 10^38)
+// 10^n table for scale lookup, n=0..14 (0 < FRAC <= 15) (i128 fits up to 10^38)
 @(private, rodata)
 _SCALE_TABLE := [15]i128 {
 	10,
@@ -30,13 +30,13 @@ _SCALE_TABLE := [15]i128 {
 
 @(private)
 _scale :: #force_inline proc "contextless" ($FRAC: int) -> i128 {
-	#assert(FRAC <= 15)
-	return _SCALE_TABLE[FRAC]
+	#assert(FRAC <= 15 && FRAC > 0)
+	return _SCALE_TABLE[FRAC - 1]
 }
 
 @(private)
 _scale_at :: #force_inline proc "contextless" (n: int) -> i128 {
-	return _SCALE_TABLE[n]
+	return _SCALE_TABLE[n - 1]
 }
 
 // Convert f64 to BCD without overflow: build scaled i from int/frac parts in integer.
