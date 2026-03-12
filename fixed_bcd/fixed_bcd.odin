@@ -1,5 +1,6 @@
 package fixed_bcd
 
+import "base:intrinsics"
 import "core:fmt"
 import "core:math"
 
@@ -9,8 +10,8 @@ BCD :: struct($FRAC_DIGITS: int) {
 }
 
 // 10^n table for scale lookup, n=0..14 (0 < FRAC <= 15) (i128 fits up to 10^38)
-@(private, rodata)
-_SCALE_TABLE := [15]i128 {
+
+_SCALE_TABLE :: [15]i128 {
 	10,
 	100,
 	1_000,
@@ -28,20 +29,9 @@ _SCALE_TABLE := [15]i128 {
 	1_000_000_000_000_000,
 }
 
-@(private)
-_scale :: #force_inline proc "contextless" ($FRAC: int) -> i128 {
-	#assert(FRAC <= 15 && FRAC > 0)
-	return _SCALE_TABLE[FRAC - 1]
-}
-
-@(private)
-_scale_at :: #force_inline proc "contextless" (n: int) -> i128 {
-	return _SCALE_TABLE[n - 1]
-}
-
 // Convert f64 to BCD without overflow: build scaled i from int/frac parts in integer.
 from_f64 :: proc "contextless" ($FRAC: int, x: f64) -> BCD(FRAC) {
-	scale := _scale(FRAC)
+	scale := _SCALE_TABLE[FRAC - 1]
 	neg := x < 0
 	x_abs := math.abs(x)
 	int_part := i128(x_abs)
@@ -74,17 +64,33 @@ init :: proc "contextless" (
 	#any_int FRAC: int,
 	$FRAC_DIGITS: int,
 ) -> BCD(FRAC_DIGITS) {
+	n := FRAC
+
+	d2 := 1
+	if n != 0 {
+		d := 0
+		for n > 0 {
+			d += 1
+			n /= 10
+		}
+		d = FRAC_DIGITS - d
+		for d > 0 {
+			d -= 1
+			d2 *= 10
+		}
+	}
+
 	diff := FRAC_DIGITS - _frac_digit_count(FRAC)
 
 	ii := abs(INT)
 	return BCD(FRAC_DIGITS) {
-		i = INT < 0 ? -(i128(ii) * _scale(FRAC_DIGITS) + i128(FRAC) * _scale_at(diff)) : i128(ii) * _scale(FRAC_DIGITS) + i128(FRAC) * _scale_at(diff),
+		i = INT < 0 ? -(i128(ii) * _SCALE_TABLE[FRAC_DIGITS - 1] + i128(FRAC) * i128(d2)) : i128(ii) * _SCALE_TABLE[FRAC_DIGITS - 1] + i128(FRAC) * i128(d2),
 	}
 }
 
 to_string :: proc(a: $T/BCD, allocator := context.allocator) -> string {
 	FRAC :: type_of(a).FRAC_DIGITS
-	scale := _scale(FRAC)
+	scale := _SCALE_TABLE[FRAC - 1]
 
 	v := a.i
 	negative := v < 0
@@ -112,13 +118,13 @@ sub :: proc "contextless" (a, b: $T/BCD) -> T {
 
 mul :: proc "contextless" (a, b: $T/BCD) -> T {
 	FRAC :: type_of(a).FRAC_DIGITS
-	scale := _scale(FRAC)
+	scale := _SCALE_TABLE[FRAC - 1]
 	return T{i = a.i * b.i / scale}
 }
 
 div :: proc "contextless" (a, b: $T/BCD) -> T {
 	FRAC :: type_of(a).FRAC_DIGITS
-	scale := _scale(FRAC)
+	scale := _SCALE_TABLE[FRAC - 1]
 	return T{i = a.i * scale / b.i}
 }
 
@@ -128,20 +134,39 @@ cmp :: proc "contextless" (a, b: $T/BCD) -> int {
 	return 0
 }
 
-eq :: proc "contextless" (a, b: $T/BCD) -> bool {return a.i == b.i}
-lt :: proc "contextless" (a, b: $T/BCD) -> bool {return a.i < b.i}
-gt :: proc "contextless" (a, b: $T/BCD) -> bool {return a.i > b.i}
+equal :: proc "contextless" (
+	a, b: $T,
+) -> bool where intrinsics.type_is_specialization_of(T, BCD) ||
+	(intrinsics.type_is_array(T) &&
+			intrinsics.type_is_specialization_of(intrinsics.type_elem_type(T), BCD)) {
+	when intrinsics.type_is_array(T) {
+		#unroll for i in 0 ..< len(a) {
+			if a[i].i != b[i].i do return false
+		}
+		return true
+	} else {
+		return a.i == b.i
+	}
+}
+lt :: proc "contextless" (a, b: BCD($FRAC_DIGITS)) -> bool {return a.i < b.i}
+gt :: proc "contextless" (a, b: BCD($FRAC_DIGITS)) -> bool {return a.i > b.i}
 
 
-to_f64 :: proc "contextless" (a: $T/BCD) -> f64 {
+to_f64 :: proc "contextless" (a: BCD($FRAC_DIGITS)) -> f64 {
 	FRAC :: type_of(a).FRAC_DIGITS
-	scale := _scale(FRAC)
+	scale := _SCALE_TABLE[FRAC - 1]
 	return f64(a.i) / f64(scale)
 }
 
-to_i128 :: proc "contextless" (a: $T/BCD) -> i128 {
+to_i128 :: proc "contextless" (a: BCD($FRAC_DIGITS)) -> i128 {
 	FRAC :: type_of(a).FRAC_DIGITS
-	scale := _scale(FRAC)
+	scale := _SCALE_TABLE[FRAC - 1]
 	return a.i / scale
+}
+
+length2 :: proc "contextless" (a, b: [2]BCD($FRAC_DIGITS)) -> BCD(FRAC_DIGITS) {
+	dx := sub(b.x, a.x)
+	dy := sub(b.y, a.y)
+	return add(mul(dx, dx), mul(dy, dy))
 }
 
