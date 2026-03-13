@@ -150,20 +150,14 @@ equal :: proc "contextless" (
 		return a.i == b.i
 	}
 }
-lt :: proc "contextless" (a, b: BCD($FRAC_DIGITS)) -> bool {return a.i < b.i}
-gt :: proc "contextless" (a, b: BCD($FRAC_DIGITS)) -> bool {return a.i > b.i}
+less :: proc "contextless" (a, b: BCD($FRAC_DIGITS)) -> bool {return a.i < b.i}
+greater :: proc "contextless" (a, b: BCD($FRAC_DIGITS)) -> bool {return a.i > b.i}
 
 
 to_f64 :: proc "contextless" (a: BCD($FRAC_DIGITS)) -> f64 {
 	FRAC :: type_of(a).FRAC_DIGITS
 	scale := _SCALE_TABLE[FRAC - 1]
 	return f64(a.i) / f64(scale)
-}
-
-to_i128 :: proc "contextless" (a: BCD($FRAC_DIGITS)) -> i128 {
-	FRAC :: type_of(a).FRAC_DIGITS
-	scale := _SCALE_TABLE[FRAC - 1]
-	return a.i / scale
 }
 
 length2 :: proc "contextless" (a, b: [2]BCD($FRAC_DIGITS)) -> BCD(FRAC_DIGITS) {
