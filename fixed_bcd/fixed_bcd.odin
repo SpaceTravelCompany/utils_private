@@ -12,8 +12,7 @@ BCD :: struct($FRAC_DIGITS: int) {
 	i: i128, // 스케일된 값 (부호 포함)
 }
 
-// 10^n table for scale lookup: index i = 10^(i+1), n=1..25 (i128 fits up to 10^38)
-
+// 10^n table for scale lookup: n => 10^n, n=1..<=len(_SCALE_TABLE) (i128 fits up to 10^38)
 _SCALE_TABLE :: [17]i128 {
 	10, // 10^1
 	100, // 10^2
