@@ -73,8 +73,8 @@ test_mul_max_frag :: proc(t: ^testing.T) {
 	a := init(9999, 99999999, MAX_FRAC_DIGITS)
 	b := init(9999, 99999999, MAX_FRAC_DIGITS)
 	r := mul(a, b)
-	fmt.println("[mul] 9999.12345 × 9999.12345 =", to_string(r, context.temp_allocator))
-	fmt.println("[mul] 기댓값                  = 99999999.99980000000000010")
+	fmt.println("[mul] 9999.99999999 × 9999.99999999 =", to_string(r, context.temp_allocator))
+	fmt.println("[mul] 기댓값                        = 99999999.99980000000000010")
 }
 
 @(test)
