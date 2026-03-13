@@ -79,16 +79,16 @@ test_mul_max_frag :: proc(t: ^testing.T) {
 
 @(test)
 test_mul_negative :: proc(t: ^testing.T) {
-	a := from_f64(DEF_FRAC_DIGITS, -2.0)
-	b := from_f64(DEF_FRAC_DIGITS, 3.0)
+	a := init(-2.0, 0, MAX_FRAC_DIGITS)
+	b := init(3.0, 0, MAX_FRAC_DIGITS)
 	r := mul(a, b)
 	fmt.println("[mul_negative] -2.0 × 3.0 =", to_string(r, context.temp_allocator))
 }
 
 @(test)
 test_div :: proc(t: ^testing.T) {
-	a := from_f64(DEF_FRAC_DIGITS, 13.0)
-	b := from_f64(DEF_FRAC_DIGITS, 4.0)
+	a := init(99999999, 12345, DEF_FRAC_DIGITS) //max cover 99999999 becaude not impl overflow handle only div
+	b := init(99999999, 12345, DEF_FRAC_DIGITS)
 	r := div(a, b)
 	fmt.println("[div] 13.0 / 4.0 =", to_string(r, context.temp_allocator))
 }
