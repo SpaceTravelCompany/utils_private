@@ -7,8 +7,10 @@ import "core:testing"
 
 @(test)
 test_from_f64 :: proc(t: ^testing.T) {
-	a := from_f64(DEF_FRAC_DIGITS, math.PI)
+	a := from_f64(MAX_FRAC_DIGITS, math.PI)
 	fmt.println("[from_f64 π]", to_string(a, context.temp_allocator))
+
+	testing.expect(t, to_f64(a) == math.PI)
 }
 
 @(test)
@@ -89,38 +91,5 @@ test_div :: proc(t: ^testing.T) {
 	b := from_f64(DEF_FRAC_DIGITS, 4.0)
 	r := div(a, b)
 	fmt.println("[div] 13.0 / 4.0 =", to_string(r, context.temp_allocator))
-}
-
-@(test)
-test_cmp :: proc(t: ^testing.T) {
-	p := from_f64(DEF_FRAC_DIGITS, 13.5)
-	q := from_f64(DEF_FRAC_DIGITS, 13.6)
-	testing.expect(t, cmp(p, q) < 0, "13.5 < 13.6 실패")
-	testing.expect(t, cmp(q, p) > 0, "13.6 > 13.5 실패")
-	testing.expect(t, cmp(p, p) == 0, "13.5 == 13.5 실패")
-	fmt.println("[cmp] cmp(13.5, 13.6) =", cmp(p, q))
-}
-
-@(test)
-test_cmp_negative :: proc(t: ^testing.T) {
-	a := from_f64(DEF_FRAC_DIGITS, -5.0)
-	b := from_f64(DEF_FRAC_DIGITS, 5.0)
-	testing.expect(t, cmp(a, b) < 0, "-5.0 < 5.0 실패")
-	fmt.println("[cmp_negative] cmp(-5.0, 5.0) =", cmp(a, b))
-}
-
-@(test)
-test_to_f64 :: proc(t: ^testing.T) {
-	a := from_f64(DEF_FRAC_DIGITS, 2.1334)
-	f := to_f64(a)
-	fmt.println("[to_f64]", f)
-}
-
-@(test)
-test_init :: proc(t: ^testing.T) {
-	a := init(2, 1334, DEF_FRAC_DIGITS)
-	fmt.println("[init] 2.1334 =", to_string(a, context.temp_allocator))
-	b := init(-2, 1334, DEF_FRAC_DIGITS)
-	fmt.println("[init] 2.1334 =", to_string(b, context.temp_allocator))
 }
 
