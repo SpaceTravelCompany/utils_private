@@ -1,54 +1,55 @@
 package fixed_bcd
 
 import "core:fmt"
+import "core:math"
 import "core:testing"
 
 
 @(test)
 test_from_f64 :: proc(t: ^testing.T) {
-	a := from_f64(DEF_FRAC_DIGITS, 3.1415926535)
+	a := from_f64(DEF_FRAC_DIGITS, math.PI)
 	fmt.println("[from_f64 π]", to_string(a, context.temp_allocator))
 }
 
 @(test)
 test_add :: proc(t: ^testing.T) {
-	a := from_f64(DEF_FRAC_DIGITS, 2.1334)
-	b := from_f64(DEF_FRAC_DIGITS, 2.1334)
+	a := init(2, 1334, DEF_FRAC_DIGITS)
+	b := init(2, 1334, DEF_FRAC_DIGITS)
 	r := add(a, b)
 	fmt.println("[add] 2.1334 + 2.1334 =", to_string(r, context.temp_allocator))
 }
 
 @(test)
 test_add_carry :: proc(t: ^testing.T) {
-	a := from_f64(DEF_FRAC_DIGITS, 9.9)
-	b := from_f64(DEF_FRAC_DIGITS, 0.1)
+	a := init(9, 9, DEF_FRAC_DIGITS)
+	b := init(0, 1, DEF_FRAC_DIGITS)
 	r := add(a, b)
 	fmt.println("[add_carry] 9.9 + 0.1 =", to_string(r, context.temp_allocator))
 }
 
 @(test)
 test_sub :: proc(t: ^testing.T) {
-	a := from_f64(DEF_FRAC_DIGITS, 130.0)
-	b := from_f64(DEF_FRAC_DIGITS, 0.1)
+	a := init(130, 0, DEF_FRAC_DIGITS)
+	b := init(0, 1, DEF_FRAC_DIGITS)
 	r := sub(a, b)
 	fmt.println("[sub] 130.0 - 0.1 =", to_string(r, context.temp_allocator))
 }
 
 @(test)
 test_sub_negative :: proc(t: ^testing.T) {
-	a := from_f64(DEF_FRAC_DIGITS, -133.456)
-	b := from_f64(DEF_FRAC_DIGITS, 130.0)
+	a := init(-133, 456, DEF_FRAC_DIGITS)
+	b := init(130, 0, DEF_FRAC_DIGITS)
 	r := sub(a, b)
 	fmt.println("[sub_negative] -133.456 - 130.0 =", to_string(r, context.temp_allocator))
 }
 
 @(test)
 test_mul :: proc(t: ^testing.T) {
-	a := from_f64(DEF_FRAC_DIGITS, 2.1334)
-	b := from_f64(DEF_FRAC_DIGITS, 2.1334)
+	a := init(2, 1334, DEF_FRAC_DIGITS)
+	b := init(2, 1334, DEF_FRAC_DIGITS)
 	r := mul(a, b)
 	fmt.println("[mul] 2.1334 × 2.1334 =", to_string(r, context.temp_allocator))
-	fmt.println("[mul] 기댓값          = 4.5088275600000")
+	fmt.println("[mul] 기댓값          = 4.551395560000000")
 }
 
 @(test)
