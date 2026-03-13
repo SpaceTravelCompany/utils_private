@@ -54,11 +54,16 @@ test_mul :: proc(t: ^testing.T) {
 
 @(test)
 test_mul_big :: proc(t: ^testing.T) {
-	a := from_f64(DEF_FRAC_DIGITS, 50000) //50000 cover max 14
-	b := from_f64(DEF_FRAC_DIGITS, 50000)
+	a := init(999999999999, 12345, DEF_FRAC_DIGITS)
+	b := init(999999999999, 12345, DEF_FRAC_DIGITS)
 	r := mul(a, b)
-	fmt.println("[mul] 50000 × 50000 =", to_string(r, context.temp_allocator))
-	fmt.println("[mul] 기댓값        = 2500000000.00000000000000")
+	fmt.println(
+		"[mul] 999999999999.12345 × 999999999999.12345 =",
+		to_string(r, context.temp_allocator),
+	)
+	fmt.println(
+		"[mul] 기댓값                                  = 999999999998246900000000.76833990250000",
+	)
 }
 
 @(test)

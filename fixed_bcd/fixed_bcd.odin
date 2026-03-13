@@ -118,14 +118,28 @@ sub :: proc "contextless" (a, b: $T/BCD) -> T {
 
 mul :: proc "contextless" (a, b: $T/BCD) -> T {
 	FRAC :: type_of(a).FRAC_DIGITS
-	scale := _SCALE_TABLE[FRAC - 1]
-	return T{i = a.i * b.i / scale}
+
+	a_int := a.i / _SCALE_TABLE[FRAC - 1]
+	a_frac := a.i % _SCALE_TABLE[FRAC - 1]
+	b_int := b.i / _SCALE_TABLE[FRAC - 1]
+	b_frac := b.i % _SCALE_TABLE[FRAC - 1]
+
+	// a_int * b_int 는 스케일 없으므로 다시 곱해야
+	// a_int * b_frac, a_frac * b_int 는 스케일 한번 들어있으므로 그대로
+	// a_frac * b_frac 는 스케일 두번이므로 나눠야
+
+	return T {
+		i = a_int * b_int * _SCALE_TABLE[FRAC - 1] +
+		a_int * b_frac +
+		a_frac * b_int +
+		a_frac * b_frac / _SCALE_TABLE[FRAC - 1],
+	}
 }
 
 div :: proc "contextless" (a, b: $T/BCD) -> T {
 	FRAC :: type_of(a).FRAC_DIGITS
 	scale := _SCALE_TABLE[FRAC - 1]
-	return T{i = a.i * scale / b.i}
+	return T{i = a.i * scale / b.i} //TODO 오버플로우 처리?
 }
 
 cmp :: proc "contextless" (a, b: $T/BCD) -> int {
