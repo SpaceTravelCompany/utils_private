@@ -3,7 +3,6 @@ package fixed_bcd
 import "core:fmt"
 import "core:testing"
 
-DEF_FRAC_DIGITS :: 14
 
 @(test)
 test_from_f64 :: proc(t: ^testing.T) {
@@ -54,11 +53,25 @@ test_mul :: proc(t: ^testing.T) {
 
 @(test)
 test_mul_big :: proc(t: ^testing.T) {
-	a := from_f64(DEF_FRAC_DIGITS, 50000) //50000 cover max 14
-	b := from_f64(DEF_FRAC_DIGITS, 50000)
+	a := init(99999999999, 12345, DEF_FRAC_DIGITS)
+	b := init(99999999999, 12345, DEF_FRAC_DIGITS)
 	r := mul(a, b)
-	fmt.println("[mul] 50000 × 50000 =", to_string(r, context.temp_allocator))
-	fmt.println("[mul] 기댓값        = 2500000000.00000000000000")
+	fmt.println(
+		"[mul] 999999999999.12345 × 999999999999.12345 =",
+		to_string(r, context.temp_allocator),
+	)
+	fmt.println(
+		"[mul] 기댓값                                  = 9999999999824690000000.768339902500000",
+	)
+}
+
+@(test)
+test_mul_max_frag :: proc(t: ^testing.T) {
+	a := init(9999, 99999999, MAX_FRAC_DIGITS)
+	b := init(9999, 99999999, MAX_FRAC_DIGITS)
+	r := mul(a, b)
+	fmt.println("[mul] 9999.12345 × 9999.12345 =", to_string(r, context.temp_allocator))
+	fmt.println("[mul] 기댓값                  = 99999999.99980000000000010")
 }
 
 @(test)
