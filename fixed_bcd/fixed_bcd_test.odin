@@ -87,9 +87,9 @@ test_mul_negative :: proc(t: ^testing.T) {
 
 @(test)
 test_div :: proc(t: ^testing.T) {
-	a := init(99999999, 12345, DEF_FRAC_DIGITS) //max cover 99999999 becaude not impl overflow handle only div
-	b := init(99999999, 12345, DEF_FRAC_DIGITS)
+	a := init(99999999, 0, DEF_FRAC_DIGITS) //max cover 99999999 becaude not impl overflow handle only div
+	b := init(10, 0, DEF_FRAC_DIGITS)
 	r := div(a, b)
-	fmt.println("[div] 13.0 / 4.0 =", to_string(r, context.temp_allocator))
+	fmt.println("[div] 99999999 / 10 =", to_string(r, context.temp_allocator))
 }
 
