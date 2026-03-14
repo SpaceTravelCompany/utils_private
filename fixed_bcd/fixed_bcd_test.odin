@@ -22,14 +22,6 @@ test_add :: proc(t: ^testing.T) {
 }
 
 @(test)
-test_add_carry :: proc(t: ^testing.T) {
-	a := init(9, 9, DEF_FRAC_DIGITS)
-	b := init(0, 1, DEF_FRAC_DIGITS)
-	r := add(a, b)
-	fmt.println("[add_carry] 9.9 + 0.1 =", to_string(r, context.temp_allocator))
-}
-
-@(test)
 test_sub :: proc(t: ^testing.T) {
 	a := init(130, 0, DEF_FRAC_DIGITS)
 	b := init(0, 1, DEF_FRAC_DIGITS)

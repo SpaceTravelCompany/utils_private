@@ -76,6 +76,28 @@ init :: proc "contextless" (
 	}
 }
 
+init_const :: proc "contextless" ($INT: int, $FRAC_DIGITS: int) -> BCD(FRAC_DIGITS) {
+	return BCD(FRAC_DIGITS){i = i128(INT) * _SCALE_TABLE[FRAC_DIGITS - 1]}
+}
+
+init_const2 :: proc "contextless" (
+	$INT: int,
+	$FRAC: int,
+	$FRAC_D: int,
+	$FRAC_DIGITS: int,
+) -> BCD(FRAC_DIGITS) {
+	when INT < 0 {
+		return BCD(FRAC_DIGITS) {
+			i = i128(INT) * _SCALE_TABLE[FRAC_DIGITS - 1] -
+			i128(FRAC) * _SCALE_TABLE[FRAC_DIGITS - FRAC_D - 1],
+		}
+	}
+	return BCD(FRAC_DIGITS) {
+		i = i128(INT) * _SCALE_TABLE[FRAC_DIGITS - 1] +
+		i128(FRAC) * _SCALE_TABLE[FRAC_DIGITS - FRAC_D - 1],
+	}
+}
+
 to_string :: proc(a: $T/BCD, allocator := context.allocator) -> string {
 	FRAC :: type_of(a).FRAC_DIGITS
 	scale := _SCALE_TABLE[FRAC - 1]
@@ -130,12 +152,6 @@ div :: proc "contextless" (a, b: $T/BCD) -> T {
 	return T{i = a.i * scale / b.i} //TODO 오버플로우 처리?
 }
 
-cmp :: proc "contextless" (a, b: $T/BCD) -> int {
-	if a.i > b.i do return 1
-	if a.i < b.i do return -1
-	return 0
-}
-
 equal :: proc "contextless" (
 	a, b: $T,
 ) -> bool where intrinsics.type_is_specialization_of(T, BCD) ||
@@ -153,6 +169,12 @@ equal :: proc "contextless" (
 less :: proc "contextless" (a, b: BCD($FRAC_DIGITS)) -> bool {return a.i < b.i}
 greater :: proc "contextless" (a, b: BCD($FRAC_DIGITS)) -> bool {return a.i > b.i}
 
+sign :: proc "contextless" (a: BCD($FRAC_DIGITS)) -> BCD(FRAC_DIGITS) {
+	return BCD(FRAC_DIGITS){i = -a.i}
+}
+
+less_than :: proc "contextless" (a, b: BCD($FRAC_DIGITS)) -> bool {return a.i <= b.i}
+greater_than :: proc "contextless" (a, b: BCD($FRAC_DIGITS)) -> bool {return a.i >= b.i}
 
 to_f64 :: proc "contextless" (a: BCD($FRAC_DIGITS)) -> f64 {
 	FRAC :: type_of(a).FRAC_DIGITS
