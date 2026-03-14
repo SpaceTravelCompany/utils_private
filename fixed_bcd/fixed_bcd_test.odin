@@ -3,6 +3,7 @@ package fixed_bcd
 import "core:fmt"
 import "core:math"
 import "core:testing"
+import "shared:utils_private"
 
 
 @(test)
