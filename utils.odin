@@ -152,7 +152,7 @@ resize_slice :: proc(
 
 // digit-by-digit integer sqrt (port of C sqrt_i64) https://github.com/chmike/fpsqrt
 @(require_results)
-sqrt_i64 :: #force_inline proc "contextless" (v: i64) -> i64 {
+sqrt_i64 :: #force_inline proc "contextless" (v: $T) -> T where intrinsics.type_is_integer(T) {
 	b := u64(1) << u64(62)
 	q: u64 = 0
 	r := u64(v)
@@ -166,11 +166,29 @@ sqrt_i64 :: #force_inline proc "contextless" (v: i64) -> i64 {
 		}
 		b >>= 2
 	}
-	return i64(q)
+	return T(q)
 }
 
 @(require_results)
-sqrt_i128 :: #force_inline proc "contextless" (v: i128) -> i128 {
+sqrt_i32 :: #force_inline proc "contextless" (v: $T) -> T where intrinsics.type_is_integer(T) {
+	b := u32(1) << u32(30)
+	q: u32 = 0
+	r := u32(v)
+	for b > r do b >>= 2
+	for b > 0 {
+		t := q + b
+		q >>= 1
+		if r >= t {
+			r -= t
+			q += b
+		}
+		b >>= 2
+	}
+	return T(q)
+}
+
+@(require_results)
+sqrt_i128 :: #force_inline proc "contextless" (v: $T) -> T where intrinsics.type_is_integer(T) {
 	b := u128(1) << u128(126)
 	q: u128 = 0
 	r := u128(v)
@@ -184,7 +202,7 @@ sqrt_i128 :: #force_inline proc "contextless" (v: i128) -> i128 {
 		}
 		b >>= 2
 	}
-	return i128(q)
+	return T(q)
 }
 
 // `inject_at_elem` injects an element in a dynamic array at a specified index and moves the previous elements after that index "across"
