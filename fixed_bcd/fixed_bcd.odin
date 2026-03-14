@@ -80,21 +80,22 @@ init_const :: proc "contextless" ($INT: int, $FRAC_DIGITS: int) -> BCD(FRAC_DIGI
 	return BCD(FRAC_DIGITS){i = i128(INT) * _SCALE_TABLE[FRAC_DIGITS - 1]}
 }
 
-init_const2 :: proc "contextless" (
-	$INT: int,
-	$FRAC: int,
-	$FRAC_D: int,
-	$FRAC_DIGITS: int,
-) -> BCD(FRAC_DIGITS) {
+init_const2 :: proc "contextless" ($INT: int, $FRAC: int, $FRAC_DIGITS: int) -> BCD(FRAC_DIGITS) {
+	digit_count :: proc "contextless" ($N: i128, $F: int) -> i128 { 	//MAX 17
+		S :: _SCALE_TABLE
+		when N == 0 {return 0} else when N < S[0] {return S[F - 2]} else when N < S[1] {return S[F - 3]} else when N < S[2] {return S[F - 4]} else when N < S[3] {return S[F - 5]} else when N < S[4] {return S[F - 6]} else when N < S[5] {return S[F - 7]} else when N < S[6] {return S[F - 8]} else when N < S[7] {return S[F - 9]} else when N < S[8] {return S[F - 10]} else when N < S[9] {return S[F - 11]} else when N < S[10] {return S[F - 12]} else when N < S[11] {return S[F - 13]} else when N < S[12] {return S[F - 14]} else when N < S[13] {return S[F - 15]} else when N < S[14] {return S[F - 16]} else when N < S[15] {return S[F - 17]}
+		return S[16]
+	}
+
 	when INT < 0 {
 		return BCD(FRAC_DIGITS) {
 			i = i128(INT) * _SCALE_TABLE[FRAC_DIGITS - 1] -
-			i128(FRAC) * _SCALE_TABLE[FRAC_DIGITS - FRAC_D - 1],
+			i128(FRAC) * digit_count(i128(FRAC), FRAC_DIGITS),
 		}
 	}
 	return BCD(FRAC_DIGITS) {
 		i = i128(INT) * _SCALE_TABLE[FRAC_DIGITS - 1] +
-		i128(FRAC) * _SCALE_TABLE[FRAC_DIGITS - FRAC_D - 1],
+		i128(FRAC) * digit_count(i128(FRAC), FRAC_DIGITS),
 	}
 }
 
