@@ -269,11 +269,6 @@ non_zero_inject_at_elems :: proc(
 }
 
 @(require_results)
-invent_bool :: #force_inline proc "contextless" (b, check: bool) -> bool {
-	return check ? !b : b
-}
-
-@(require_results)
 ceil_up :: proc "contextless" (num: $T, multiple: T) -> T where intrinsics.type_is_integer(T) {
 	if multiple == 0 do return num
 
@@ -339,4 +334,3 @@ Prev :: proc "contextless" (#any_int idx: int, #any_int len: int) -> int {
 Next :: proc "contextless" (#any_int idx: int, #any_int len: int) -> int {
 	return (idx + 1) % len
 }
-
