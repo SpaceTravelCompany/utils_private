@@ -36,7 +36,7 @@ _SCALE_TABLE :: [18]i128 {
 
 // Convert f64 to BCD without overflow: build scaled i from int/frac parts in integer.
 from_f64 :: proc "contextless" ($FRAC: int, x: f64) -> BCD(FRAC) {
-	scale := _SCALE_TABLE[FRAC - 1]
+	scale := _SCALE_TABLE[FRAC]
 	neg := x < 0
 	x_abs := math.abs(x)
 	int_part := i128(x_abs)
@@ -120,15 +120,15 @@ to_string :: proc(a: $T/BCD, allocator := context.allocator) -> string {
 	)
 }
 
-add :: proc "contextless" (a, b: $T/BCD) -> T {
-	return T{i = a.i + b.i}
+add :: proc "contextless" (a: BCD($FRAC_DIGITS), b: BCD(FRAC_DIGITS)) -> BCD(FRAC_DIGITS) {
+	return BCD(FRAC_DIGITS){i = a.i + b.i}
 }
 
-sub :: proc "contextless" (a, b: $T/BCD) -> T {
-	return T{i = a.i - b.i}
+sub :: proc "contextless" (a: BCD($FRAC_DIGITS), b: BCD(FRAC_DIGITS)) -> BCD(FRAC_DIGITS) {
+	return BCD(FRAC_DIGITS){i = a.i - b.i}
 }
 
-mul :: proc "contextless" (a, b: $T/BCD) -> T {
+mul :: proc "contextless" (a: BCD($FRAC_DIGITS), b: BCD(FRAC_DIGITS)) -> BCD(FRAC_DIGITS) {
 	FRAC :: type_of(a).FRAC_DIGITS
 
 	a_int := a.i / _SCALE_TABLE[FRAC]
@@ -140,7 +140,7 @@ mul :: proc "contextless" (a, b: $T/BCD) -> T {
 	// a_int * b_frac, a_frac * b_int 는 스케일 한번 들어있으므로 그대로
 	// a_frac * b_frac 는 스케일 두번이므로 나눠야
 
-	return T {
+	return BCD(FRAC_DIGITS) {
 		i = a_int * b_int * _SCALE_TABLE[FRAC] +
 		a_int * b_frac +
 		a_frac * b_int +
@@ -168,15 +168,24 @@ equal :: proc "contextless" (
 		return a.i == b.i
 	}
 }
-less :: proc "contextless" (a, b: BCD($FRAC_DIGITS)) -> bool {return a.i < b.i}
-greater :: proc "contextless" (a, b: BCD($FRAC_DIGITS)) -> bool {return a.i > b.i}
+less :: proc "contextless" (a: BCD($FRAC_DIGITS), b: BCD(FRAC_DIGITS)) -> bool {return a.i < b.i}
+greater :: proc "contextless" (a: BCD($FRAC_DIGITS), b: BCD(FRAC_DIGITS)) -> bool {return(
+		a.i >
+		b.i \
+	)}
 
 sign :: proc "contextless" (a: BCD($FRAC_DIGITS)) -> BCD(FRAC_DIGITS) {
 	return BCD(FRAC_DIGITS){i = -a.i}
 }
 
-less_than :: proc "contextless" (a, b: BCD($FRAC_DIGITS)) -> bool {return a.i <= b.i}
-greater_than :: proc "contextless" (a, b: BCD($FRAC_DIGITS)) -> bool {return a.i >= b.i}
+less_than :: proc "contextless" (a: BCD($FRAC_DIGITS), b: BCD(FRAC_DIGITS)) -> bool {return(
+		a.i <=
+		b.i \
+	)}
+greater_than :: proc "contextless" (a: BCD($FRAC_DIGITS), b: BCD(FRAC_DIGITS)) -> bool {return(
+		a.i >=
+		b.i \
+	)}
 
 to_f64 :: proc "contextless" (a: BCD($FRAC_DIGITS)) -> f64 {
 	FRAC :: type_of(a).FRAC_DIGITS
@@ -184,7 +193,10 @@ to_f64 :: proc "contextless" (a: BCD($FRAC_DIGITS)) -> f64 {
 	return f64(a.i) / f64(scale)
 }
 
-length2 :: proc "contextless" (a, b: [2]BCD($FRAC_DIGITS)) -> BCD(FRAC_DIGITS) {
+length2 :: proc "contextless" (
+	a: [2]BCD($FRAC_DIGITS),
+	b: [2]BCD(FRAC_DIGITS),
+) -> BCD(FRAC_DIGITS) {
 	dx := sub(b.x, a.x)
 	dy := sub(b.y, a.y)
 	return add(mul(dx, dx), mul(dy, dy))
