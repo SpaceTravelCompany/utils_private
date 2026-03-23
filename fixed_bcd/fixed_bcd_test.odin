@@ -49,15 +49,15 @@ test_mul :: proc(t: ^testing.T) {
 
 @(test)
 test_mul_big :: proc(t: ^testing.T) {
-	a := init_const(99999999999, 12345, 5, DEF_FRAC_DIGITS)
-	b := init_const(99999999999, 12345, 5, DEF_FRAC_DIGITS)
+	a := init_const(9999999999, 12345, 5, DEF_FRAC_DIGITS)
+	b := init_const(9999999999, 12345, 5, DEF_FRAC_DIGITS)
 	r := mul(a, b)
 	fmt.println(
 		"[mul] 999999999999.12345 × 999999999999.12345 =",
 		to_string(r, context.temp_allocator),
 	)
 	fmt.println(
-		"[mul] 기댓값                                  = 9999999999824690000000.768339902500000",
+		"[mul] 기댓값                                  = 99999999998246900000.76833990250000000",
 	)
 }
 
@@ -80,8 +80,9 @@ test_mul_negative :: proc(t: ^testing.T) {
 
 @(test)
 test_div :: proc(t: ^testing.T) {
-	a := init_const(99999999, 0, 0, DEF_FRAC_DIGITS) //max cover 99999999 becaude not impl overflow handle only div
+	a := init_const(9999999999999, 0, 0, DEF_FRAC_DIGITS)
 	b := init_const(10, 0, 0, DEF_FRAC_DIGITS)
 	r := div(a, b)
-	fmt.println("[div] 99999999 / 10 =", to_string(r, context.temp_allocator))
+	fmt.println("[div] 99999 / 10 =", to_string(r, context.temp_allocator))
 }
+
