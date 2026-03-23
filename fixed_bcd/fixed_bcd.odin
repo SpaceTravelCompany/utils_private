@@ -130,7 +130,7 @@ sub :: proc "contextless" (a: BCD($FRAC_DIGITS), b: BCD(FRAC_DIGITS)) -> BCD(FRA
 
 @(private)
 MulU128ByU64 :: proc "contextless" (a: u128, b: u64) -> (hi, lo: u128) {
-	mask64 :: u128(0xFFFF_FFFF_FFFF_FFFF)
+	mask64 :: u128(max(u64))
 	a0 := a & mask64
 	a1 := a >> 64
 
