@@ -148,7 +148,7 @@ MulU128ByU64 :: proc "contextless" (a: u128, b: u64) -> (hi, lo: u128) {
 @(private)
 DivU256ByU128 :: proc "contextless" (n_hi, n_lo, d: u128) -> u128 {
 	// d 를 64비트로 정규화
-	shift := u32(intrinsics.count_leading_zeros(d))
+	shift := intrinsics.count_leading_zeros(d)
 	d_norm := d << shift
 	n_hi_s := (n_hi << shift) | (n_lo >> (128 - shift))
 	n_lo_s := n_lo << shift
