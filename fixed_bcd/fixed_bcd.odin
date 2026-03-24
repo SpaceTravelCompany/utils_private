@@ -147,8 +147,6 @@ MulU128ByU64 :: proc "contextless" (a: u128, b: u64) -> (hi, lo: u128) {
 //Knuth TAOCP Vol.2 Algorithm D // TODO 복잡해서 추후에 더 확인
 @(private)
 DivU256ByU128 :: proc "contextless" (n_hi, n_lo, d: u128) -> u128 {
-	if n_hi == 0 do return n_lo / d
-
 	// d 를 64비트로 정규화
 	shift := u32(intrinsics.count_leading_zeros(d))
 	d_norm := d << shift
