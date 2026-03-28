@@ -10,6 +10,7 @@ import "core:mem"
 
 import "core:math/fixed"
 
+@(require_results)
 make_non_zeroed_slice :: #force_inline proc(
 	$T: typeid/[]$E,
 	#any_int len: int,
@@ -30,6 +31,20 @@ make_non_zeroed_slice :: #force_inline proc(
 	return
 }
 
+@(require_results)
+new_non_zeroed :: proc(
+	$T: typeid,
+	allocator := context.allocator,
+	loc := #caller_location,
+) -> (
+	t: ^T,
+	err: runtime.Allocator_Error,
+) #optional_allocator_error {
+	t = (^T)(raw_data(mem_alloc_non_zeroed(size_of(T), align_of(T), allocator, loc) or_return))
+	return
+}
+
+@(require_results)
 make_non_zeroed_dynamic_array_len_cap :: #force_inline proc(
 	$T: typeid/[dynamic]$E,
 	#any_int len, cap: int,
@@ -152,7 +167,7 @@ resize_slice :: proc(
 
 // digit-by-digit integer sqrt (port of C sqrt_i64) https://github.com/chmike/fpsqrt
 @(require_results)
-sqrt_i64 :: #force_inline proc "contextless" (v: $T) -> T where intrinsics.type_is_integer(T) {
+sqrt_64 :: #force_inline proc "contextless" (v: $T) -> T where intrinsics.type_is_integer(T) {
 	b := u64(1) << u64(62)
 	q: u64 = 0
 	r := u64(v)
@@ -170,7 +185,7 @@ sqrt_i64 :: #force_inline proc "contextless" (v: $T) -> T where intrinsics.type_
 }
 
 @(require_results)
-sqrt_i32 :: #force_inline proc "contextless" (v: $T) -> T where intrinsics.type_is_integer(T) {
+sqrt_32 :: #force_inline proc "contextless" (v: $T) -> T where intrinsics.type_is_integer(T) {
 	b := u32(1) << u32(30)
 	q: u32 = 0
 	r := u32(v)
@@ -188,7 +203,7 @@ sqrt_i32 :: #force_inline proc "contextless" (v: $T) -> T where intrinsics.type_
 }
 
 @(require_results)
-sqrt_i128 :: #force_inline proc "contextless" (v: $T) -> T where intrinsics.type_is_integer(T) {
+sqrt_128 :: #force_inline proc "contextless" (v: $T) -> T where intrinsics.type_is_integer(T) {
 	b := u128(1) << u128(126)
 	q: u128 = 0
 	r := u128(v)
@@ -334,3 +349,4 @@ Prev :: proc "contextless" (#any_int idx: int, #any_int len: int) -> int {
 Next :: proc "contextless" (#any_int idx: int, #any_int len: int) -> int {
 	return (idx + 1) % len
 }
+
