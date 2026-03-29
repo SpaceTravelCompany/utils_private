@@ -3,7 +3,6 @@ package fixed_bcd
 import "core:fmt"
 import "core:math"
 import "core:testing"
-import "shared:utils_private"
 
 
 @(test)
@@ -44,7 +43,7 @@ test_mul :: proc(t: ^testing.T) {
 	b := init_const(2, 1334, 4, DEF_FRAC_DIGITS)
 	r := mul(a, b)
 	fmt.println("[mul] 2.1334 × 2.1334 =", to_string(r, context.temp_allocator))
-	fmt.println("[mul] 기댓값          = 4.551395560000000")
+	fmt.println("[mul] 기댓값          = 4.55139556000000000")
 }
 
 @(test)
@@ -83,6 +82,6 @@ test_div :: proc(t: ^testing.T) {
 	a := init_const(9999999999999, 0, 0, DEF_FRAC_DIGITS)
 	b := init_const(10, 0, 0, DEF_FRAC_DIGITS)
 	r := div(a, b)
-	fmt.println("[div] 99999 / 10 =", to_string(r, context.temp_allocator))
+	fmt.println("[div] 9999999999999 / 10 =", to_string(r, context.temp_allocator))
 }
 
