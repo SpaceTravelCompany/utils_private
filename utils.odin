@@ -40,7 +40,7 @@ new_non_zeroed :: proc(
 	t: ^T,
 	err: runtime.Allocator_Error,
 ) #optional_allocator_error {
-	t = (^T)(raw_data(mem_alloc_non_zeroed(size_of(T), align_of(T), allocator, loc) or_return))
+	t = (^T)(raw_data(runtime.mem_alloc_non_zeroed(size_of(T), align_of(T), allocator, loc) or_return))
 	return
 }
 
