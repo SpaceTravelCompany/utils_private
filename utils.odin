@@ -2,13 +2,6 @@ package utils_private
 
 import "base:intrinsics"
 import "base:runtime"
-import "core:math"
-
-import "core:math/linalg"
-import "core:mem"
-
-
-import "core:math/fixed"
 
 @(require_results)
 make_non_zeroed_slice :: #force_inline proc(
@@ -40,7 +33,9 @@ new_non_zeroed :: proc(
 	t: ^T,
 	err: runtime.Allocator_Error,
 ) #optional_allocator_error {
-	t = (^T)(raw_data(runtime.mem_alloc_non_zeroed(size_of(T), align_of(T), allocator, loc) or_return))
+	t = (^T)(
+		raw_data(runtime.mem_alloc_non_zeroed(size_of(T), align_of(T), allocator, loc) or_return),
+	)
 	return
 }
 
@@ -331,16 +326,6 @@ max_array :: proc "contextless" (
 	}
 	return
 }
-@(require_results)
-epsilon :: proc "contextless" ($T: typeid) -> T where intrinsics.type_is_float(T) {
-	when T == f16 || T == f16be || T == f16le do return T(math.F16_EPSILON)
-	when T == f32 || T == f32be || T == f32le do return T(math.F32_EPSILON)
-	return T(math.F64_EPSILON)
-}
-@(require_results)
-epsilon_equal :: proc "contextless" (a: $T, b: T) -> bool where intrinsics.type_is_float(T) {
-	return abs(a - b) < epsilon(T)
-}
 
 Prev :: proc "contextless" (#any_int idx: int, #any_int len: int) -> int {
 	return idx == 0 ? len - 1 : idx - 1
@@ -349,4 +334,3 @@ Prev :: proc "contextless" (#any_int idx: int, #any_int len: int) -> int {
 Next :: proc "contextless" (#any_int idx: int, #any_int len: int) -> int {
 	return (idx + 1) % len
 }
-
