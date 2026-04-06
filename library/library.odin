@@ -1,20 +1,25 @@
 package library
 
+import "core:c"
+
 is_android :: ODIN_PLATFORM_SUBTARGET == .Android
-is_mobile :: ODIN_PLATFORM_SUBTARGET == .Android || ODIN_PLATFORM_SUBTARGET == .iPhone || ODIN_PLATFORM_SUBTARGET == .iPhoneSimulator
+is_mobile ::
+	ODIN_PLATFORM_SUBTARGET == .Android ||
+	ODIN_PLATFORM_SUBTARGET == .iPhone ||
+	ODIN_PLATFORM_SUBTARGET == .iPhoneSimulator
 
 when ODIN_ARCH == .amd64 {
-    __ARCH_end :: "_amd64"
+	__ARCH_end :: "_amd64"
 } else when ODIN_ARCH == .i386 {
-    __ARCH_end :: "_i386"
+	__ARCH_end :: "_i386"
 } else when ODIN_ARCH == .arm64 {
-    __ARCH_end :: "_arm64"
+	__ARCH_end :: "_arm64"
 } else when ODIN_ARCH == .riscv64 {
-    __ARCH_end :: "_riscv64"
+	__ARCH_end :: "_riscv64"
 } else when ODIN_ARCH == .arm32 {
-    __ARCH_end :: "_arm32"
+	__ARCH_end :: "_arm32"
 } else when ODIN_OS == .JS || ODIN_OS == .WASI {
-    __ARCH_end :: "_wasm"
+	__ARCH_end :: "_wasm"
 }
 
 when ODIN_OS == .Windows && !is_mobile {
@@ -32,9 +37,21 @@ when !is_mobile {
 		//TODO
 	} else {
 		LIBPATH :: "/lib/linux"
-    }
+	}
 } else {
 	when is_android {
-        LIBPATH :: "/lib/android"
+		LIBPATH :: "/lib/android"
 	}
+}
+
+when size_of(c.int) == size_of(b32) {
+	BOOL :: b32
+} else when size_of(c.int) == size_of(b16) {
+	BOOL :: b16
+} else when size_of(c.int) == size_of(b64) {
+	BOOL :: b64
+} else when size_of(c.int) == size_of(b8) {
+	BOOL :: b8
+} else {
+	#panic("invaild BOOL")
 }
