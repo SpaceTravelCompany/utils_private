@@ -43,15 +43,3 @@ when !is_mobile {
 		LIBPATH :: "/lib/android"
 	}
 }
-
-when size_of(c.int) == size_of(b32) {
-	BOOL :: b32
-} else when size_of(c.int) == size_of(b16) {
-	BOOL :: b16
-} else when size_of(c.int) == size_of(b64) {
-	BOOL :: b64
-} else when size_of(c.int) == size_of(b8) {
-	BOOL :: b8
-} else {
-	#panic("invaild BOOL")
-}
