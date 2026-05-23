@@ -7,7 +7,7 @@ import "core:fmt"
 DEF_FRAC_DIGITS :: MAX_FRAC_DIGITS
 MAX_FRAC_DIGITS :: len(_SCALE_TABLE) - 1
 
-BCD :: struct($FRAC_DIGITS: int) {
+BCD :: struct($FRAC_DIGITS: i64) {
 	i: i128, // 스케일된 값 (부호 포함)
 }
 
@@ -34,7 +34,7 @@ _SCALE_TABLE :: [18]i128 {
 }
 
 // Convert f64 to BCD without overflow: build scaled i from int/frac parts in integer.
-from_f64 :: proc "contextless" ($FRAC: int, x: f64) -> BCD(FRAC) {
+from_f64 :: proc "contextless" ($FRAC: i64, x: f64) -> BCD(FRAC) {
 	scale := _SCALE_TABLE[FRAC]
 	neg := x < 0
 	x_abs := abs(x)
@@ -86,10 +86,10 @@ init :: proc "contextless" (
 }
 
 init_const :: proc "contextless" (
-	$INT: int,
-	$FRAC: int,
-	$FRAC_LEN: int,
-	$FRAC_DIGITS: int,
+	$INT: i64,
+	$FRAC: i64,
+	$FRAC_LEN: i64,
+	$FRAC_DIGITS: i64,
 ) -> BCD(FRAC_DIGITS) {
 	when INT < 0 {
 		return BCD(FRAC_DIGITS) {
@@ -300,4 +300,3 @@ compare_product :: proc "contextless" (
 	if lhs < rhs do return -1
 	return 0
 }
-
