@@ -2,26 +2,26 @@ package list_ex
 
 import li "core:container/intrusive/list"
 
-insert_after :: proc "contextless" (list: ^li.List, current_node: ^li.Node, new_node: ^li.Node) {
-	new_node.prev = current_node
-	new_node.next = current_node.next
+insertAfter :: proc "contextless" (list: ^li.List, currentNode: ^li.Node, newNode: ^li.Node) {
+	newNode.prev = currentNode
+	newNode.next = currentNode.next
 
-	if current_node.next != nil {
-		current_node.next.prev = new_node
+	if currentNode.next != nil {
+		currentNode.next.prev = newNode
 	} else {
-		list.tail = new_node
+		list.tail = newNode
 	}
-	current_node.next = new_node
+	currentNode.next = newNode
 }
 
-insert_before :: proc "contextless" (list: ^li.List, current_node: ^li.Node, new_node: ^li.Node) {
-	new_node.next = current_node
-	new_node.prev = current_node.prev
+insertBefore :: proc "contextless" (list: ^li.List, currentNode: ^li.Node, newNode: ^li.Node) {
+	newNode.next = currentNode
+	newNode.prev = currentNode.prev
 
-	if current_node.prev != nil {
-		current_node.prev.next = new_node
+	if currentNode.prev != nil {
+		currentNode.prev.next = newNode
 	} else {
-		list.head = new_node
+		list.head = newNode
 	}
-	current_node.prev = new_node
+	currentNode.prev = newNode
 }

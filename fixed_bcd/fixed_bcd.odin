@@ -4,15 +4,15 @@ import "base:intrinsics"
 import "core:fmt"
 
 
-DEF_FRAC_DIGITS :: MAX_FRAC_DIGITS
-MAX_FRAC_DIGITS :: len(_SCALE_TABLE) - 1
+DefFracDigits :: MaxFracDigits
+MaxFracDigits :: len(_ScaleTable) - 1
 
-BCD :: struct($FRAC_DIGITS: i64) {
+BCD :: struct($fracDigits: i64) {
 	i: i128, // 스케일된 값 (부호 포함)
 }
 
-// 10^n table for scale lookup: n => 10^n, n=1..<=len(_SCALE_TABLE) (i128 fits up to 10^38)
-_SCALE_TABLE :: [18]i128 {
+// 10^n table for scale lookup: n => 10^n, n=1..<=len(_ScaleTable) (i128 fits up to 10^38)
+_ScaleTable :: [18]i128 {
 	1,
 	10, // 10^1
 	100, // 10^2
@@ -34,31 +34,31 @@ _SCALE_TABLE :: [18]i128 {
 }
 
 // Convert f64 to BCD without overflow: build scaled i from int/frac parts in integer.
-from_f64 :: proc "contextless" ($FRAC: i64, x: f64) -> BCD(FRAC) {
-	scale := _SCALE_TABLE[FRAC]
+fromF64 :: proc "contextless" ($frac: i64, x: f64) -> BCD(frac) {
+	scale := _ScaleTable[frac]
 	neg := x < 0
-	x_abs := abs(x)
-	int_part := i128(x_abs)
-	frac := x_abs - f64(int_part) // in [0, 1)
+	xAbs := abs(x)
+	intPart := i128(xAbs)
+	fr := xAbs - f64(intPart) // in [0, 1)
 
-	int_scaled := int_part * scale
+	intScaled := intPart * scale
 
-	val := int_scaled + i128(frac * f64(scale))
+	val := intScaled + i128(fr * f64(scale))
 	if neg do val = -val
-	return BCD(FRAC){i = val}
+	return BCD(frac){i = val}
 }
 
-// init from integer part and fractional part. //!FRAC MUST >= 0
+// init from integer part and fractional part. //!frac MUST >= 0
 init :: proc "contextless" (
-	#any_int INT: int,
-	#any_int FRAC: int,
-	$FRAC_LEN: int,
-	$FRAC_DIGITS: int,
-) -> BCD(FRAC_DIGITS) {
-	n := FRAC
+	#any_int integ: int,
+	#any_int frac: int,
+	$fracLen: int,
+	$fracDigits: int,
+) -> BCD(fracDigits) {
+	n := frac
 	ii: int
 
-	when FRAC_LEN <= 0 { 	// 직접 계산
+	when fracLen <= 0 { 	// 직접 계산
 		d2 := 1
 		if n != 0 {
 			d := 0
@@ -66,66 +66,66 @@ init :: proc "contextless" (
 				d += 1
 				n /= 10
 			}
-			d = FRAC_DIGITS - d
+			d = fracDigits - d
 			for d > 0 {
 				d -= 1
 				d2 *= 10
 			}
 		}
 
-		ii = abs(INT)
-		return BCD(FRAC_DIGITS) {
-			i = INT < 0 ? -(i128(ii) * _SCALE_TABLE[FRAC_DIGITS] + i128(FRAC) * i128(d2)) : i128(ii) * _SCALE_TABLE[FRAC_DIGITS] + i128(FRAC) * i128(d2),
+		ii = abs(integ)
+		return BCD(fracDigits) {
+			i = integ < 0 ? -(i128(ii) * _ScaleTable[fracDigits] + i128(frac) * i128(d2)) : i128(ii) * _ScaleTable[fracDigits] + i128(frac) * i128(d2),
 		}
 	}
 
-	ii = abs(INT)
-	return BCD(FRAC_DIGITS) {
-		i = INT < 0 ? -(i128(ii) * _SCALE_TABLE[FRAC_DIGITS] + i128(FRAC) * _SCALE_TABLE[FRAC_DIGITS - FRAC_LEN]) : i128(ii) * _SCALE_TABLE[FRAC_DIGITS] + i128(FRAC) * _SCALE_TABLE[FRAC_DIGITS - FRAC_LEN],
+	ii = abs(integ)
+	return BCD(fracDigits) {
+		i = integ < 0 ? -(i128(ii) * _ScaleTable[fracDigits] + i128(frac) * _ScaleTable[fracDigits - fracLen]) : i128(ii) * _ScaleTable[fracDigits] + i128(frac) * _ScaleTable[fracDigits - fracLen],
 	}
 }
 
-init_const :: proc "contextless" (
-	$INT: i64,
-	$FRAC: i64,
-	$FRAC_LEN: i64,
-	$FRAC_DIGITS: i64,
-) -> BCD(FRAC_DIGITS) {
-	when INT < 0 {
-		return BCD(FRAC_DIGITS) {
-			i = i128(INT) * _SCALE_TABLE[FRAC_DIGITS] -
-			i128(FRAC) * _SCALE_TABLE[FRAC_DIGITS - FRAC_LEN],
+initConst :: proc "contextless" (
+	$integ: i64,
+	$frac: i64,
+	$fracLen: i64,
+	$fracDigits: i64,
+) -> BCD(fracDigits) {
+	when integ < 0 {
+		return BCD(fracDigits) {
+			i = i128(integ) * _ScaleTable[fracDigits] -
+			i128(frac) * _ScaleTable[fracDigits - fracLen],
 		}
 	}
-	return BCD(FRAC_DIGITS) {
-		i = i128(INT) * _SCALE_TABLE[FRAC_DIGITS] +
-		i128(FRAC) * _SCALE_TABLE[FRAC_DIGITS - FRAC_LEN],
+	return BCD(fracDigits) {
+		i = i128(integ) * _ScaleTable[fracDigits] +
+		i128(frac) * _ScaleTable[fracDigits - fracLen],
 	}
 }
 
-to_string :: proc(a: $T/BCD, allocator := context.allocator) -> string {
+toString :: proc(a: $T/BCD, allocator := context.allocator) -> string {
 	v := a.i
 	negative := v < 0
 	if negative do v = -v
 
-	int_part := v / _SCALE_TABLE[type_of(a).FRAC_DIGITS]
+	intPart := v / _ScaleTable[type_of(a).fracDigits]
 
-	when type_of(a).FRAC_DIGITS == 0 {
-		return negative ? fmt.aprintf("-%d", int_part) : fmt.aprintf("%d", int_part)
+	when type_of(a).fracDigits == 0 {
+		return negative ? fmt.aprintf("-%d", intPart) : fmt.aprintf("%d", intPart)
 	}
-	frac_part := v % _SCALE_TABLE[type_of(a).FRAC_DIGITS]
+	fracPart := v % _ScaleTable[type_of(a).fracDigits]
 
 	return(
-		negative ? fmt.aprintf("-%d.%0*d", int_part, type_of(a).FRAC_DIGITS, frac_part, allocator = allocator) : fmt.aprintf("%d.%0*d", int_part, type_of(a).FRAC_DIGITS, frac_part, allocator = allocator) \
+		negative ? fmt.aprintf("-%d.%0*d", intPart, type_of(a).fracDigits, fracPart, allocator = allocator) : fmt.aprintf("%d.%0*d", intPart, type_of(a).fracDigits, fracPart, allocator = allocator) \
 	)
 }
 
-add :: proc "contextless" (a: BCD($FRAC_DIGITS), b: BCD(FRAC_DIGITS)) -> BCD(FRAC_DIGITS) {
-	return BCD(FRAC_DIGITS){i = a.i + b.i}
+add :: proc "contextless" (a: BCD($fracDigits), b: BCD(fracDigits)) -> BCD(fracDigits) {
+	return BCD(fracDigits){i = a.i + b.i}
 }
 
-sub :: proc "contextless" (a: BCD($FRAC_DIGITS), b: BCD(FRAC_DIGITS)) -> BCD(FRAC_DIGITS) {
-	return BCD(FRAC_DIGITS){i = a.i - b.i}
+sub :: proc "contextless" (a: BCD($fracDigits), b: BCD(fracDigits)) -> BCD(fracDigits) {
+	return BCD(fracDigits){i = a.i - b.i}
 }
 
 @(private)
@@ -146,63 +146,63 @@ MulU128ByU64 :: proc "contextless" (a: u128, b: u64) -> (hi, lo: u128) {
 
 //Knuth TAOCP Vol.2 Algorithm D // TODO 복잡해서 추후에 더 확인
 @(private)
-DivU256ByU128 :: proc "contextless" (n_hi, n_lo, d: u128) -> u128 {
+DivU256ByU128 :: proc "contextless" (nHi, nLo, d: u128) -> u128 {
 	// d 를 64비트로 정규화
 	shift := intrinsics.count_leading_zeros(d)
-	d_norm := d << shift
-	n_hi_s := (n_hi << shift) | (n_lo >> (128 - shift))
-	n_lo_s := n_lo << shift
+	dNorm := d << shift
+	nHiS := (nHi << shift) | (nLo >> (128 - shift))
+	nLoS := nLo << shift
 
-	d_hi := d_norm >> 64
-	d_lo := d_norm & u128(max(u64))
+	dHi := dNorm >> 64
+	dLo := dNorm & u128(max(u64))
 
-	// 1단계: 상위 128비트 / d_hi → 몫 근사
-	q1 := n_hi_s / d_hi
-	rem1 := n_hi_s % d_hi
+	// 1단계: 상위 128비트 / dHi → 몫 근사
+	q1 := nHiS / dHi
+	rem1 := nHiS % dHi
 
 	// q1 보정 (최대 2번)
-	for q1 >> 64 != 0 || q1 * d_lo > (rem1 << 64) | (n_lo_s >> 64) {
+	for q1 >> 64 != 0 || q1 * dLo > (rem1 << 64) | (nLoS >> 64) {
 		q1 -= 1
-		rem1 += d_hi
+		rem1 += dHi
 		if rem1 >> 64 != 0 do break
 	}
 
-	// 2단계: 하위 128비트 / d_hi → 몫 근사
-	rem2 := ((n_hi_s - q1 * d_hi) << 64) | (n_lo_s >> 64)
-	q2 := rem2 / d_hi
-	rem3 := rem2 % d_hi
+	// 2단계: 하위 128비트 / dHi → 몫 근사
+	rem2 := ((nHiS - q1 * dHi) << 64) | (nLoS >> 64)
+	q2 := rem2 / dHi
+	rem3 := rem2 % dHi
 
-	for q2 >> 64 != 0 || q2 * d_lo > (rem3 << 64) | (n_lo_s & u128(max(u64))) {
+	for q2 >> 64 != 0 || q2 * dLo > (rem3 << 64) | (nLoS & u128(max(u64))) {
 		q2 -= 1
-		rem3 += d_hi
+		rem3 += dHi
 		if rem3 >> 64 != 0 do break
 	}
 
 	return (q1 << 64) | q2
 }
 
-mul :: proc "contextless" (a: BCD($FRAC_DIGITS), b: BCD(FRAC_DIGITS)) -> BCD(FRAC_DIGITS) {
-	FRAC :: type_of(a).FRAC_DIGITS
-	scale := _SCALE_TABLE[FRAC]
+mul :: proc "contextless" (a: BCD($fracDigits), b: BCD(fracDigits)) -> BCD(fracDigits) {
+	FRAC :: type_of(a).fracDigits
+	scale := _ScaleTable[FRAC]
 
 	product, overflowed := intrinsics.overflow_mul(a.i, b.i)
 	if !overflowed {
-		return BCD(FRAC_DIGITS){i = product / scale}
+		return BCD(fracDigits){i = product / scale}
 	}
 	// 정수 분해 (최종 값이 오버플로우 없다고 가정)
-	a_int := a.i / scale
-	a_frac := a.i % scale
-	b_int := b.i / scale
-	b_frac := b.i % scale
+	aInt := a.i / scale
+	aFrac := a.i % scale
+	bInt := b.i / scale
+	bFrac := b.i % scale
 
-	return BCD(FRAC_DIGITS) {
-		i = a_int * b_int * scale + a_int * b_frac + a_frac * b_int + a_frac * b_frac / scale,
+	return BCD(fracDigits) {
+		i = aInt * bInt * scale + aInt * bFrac + aFrac * bInt + aFrac * bFrac / scale,
 	}
 }
 
 div :: proc "contextless" (a, b: $T/BCD) -> T {
-	FRAC :: type_of(a).FRAC_DIGITS
-	scale := _SCALE_TABLE[FRAC]
+	FRAC :: type_of(a).fracDigits
+	scale := _ScaleTable[FRAC]
 
 	if a.i == 0 do return T{i = 0}
 
@@ -210,9 +210,9 @@ div :: proc "contextless" (a, b: $T/BCD) -> T {
 	if !overflowed do return T{i = scaled / b.i}
 
 	negative := (a.i < 0) != (b.i < 0)
-	n_hi, n_lo := MulU128ByU64(auto_cast abs(a.i), u64(scale))
-	q_u := DivU256ByU128(n_hi, n_lo, auto_cast abs(b.i))
-	return T{i = negative ? -i128(q_u) : i128(q_u)}
+	nHi, nLo := MulU128ByU64(auto_cast abs(a.i), u64(scale))
+	qU := DivU256ByU128(nHi, nLo, auto_cast abs(b.i))
+	return T{i = negative ? -i128(qU) : i128(qU)}
 }
 
 equal :: proc "contextless" (
@@ -229,50 +229,50 @@ equal :: proc "contextless" (
 		return a.i == b.i
 	}
 }
-less :: proc "contextless" (a: BCD($FRAC_DIGITS), b: BCD(FRAC_DIGITS)) -> bool {return a.i < b.i}
-greater :: proc "contextless" (a: BCD($FRAC_DIGITS), b: BCD(FRAC_DIGITS)) -> bool {return(
+less :: proc "contextless" (a: BCD($fracDigits), b: BCD(fracDigits)) -> bool {return a.i < b.i}
+greater :: proc "contextless" (a: BCD($fracDigits), b: BCD(fracDigits)) -> bool {return(
 		a.i >
 		b.i \
 	)}
 
-sign :: proc "contextless" (a: BCD($FRAC_DIGITS)) -> BCD(FRAC_DIGITS) {
-	return BCD(FRAC_DIGITS){i = -a.i}
+sign :: proc "contextless" (a: BCD($fracDigits)) -> BCD(fracDigits) {
+	return BCD(fracDigits){i = -a.i}
 }
 
-less_than :: proc "contextless" (a: BCD($FRAC_DIGITS), b: BCD(FRAC_DIGITS)) -> bool {return(
+lessThan :: proc "contextless" (a: BCD($fracDigits), b: BCD(fracDigits)) -> bool {return(
 		a.i <=
 		b.i \
 	)}
-greater_than :: proc "contextless" (a: BCD($FRAC_DIGITS), b: BCD(FRAC_DIGITS)) -> bool {return(
+greaterThan :: proc "contextless" (a: BCD($fracDigits), b: BCD(fracDigits)) -> bool {return(
 		a.i >=
 		b.i \
 	)}
 
-to_f64 :: proc "contextless" (a: BCD($FRAC_DIGITS)) -> f64 {
-	FRAC :: type_of(a).FRAC_DIGITS
-	scale := _SCALE_TABLE[FRAC]
+toF64 :: proc "contextless" (a: BCD($fracDigits)) -> f64 {
+	FRAC :: type_of(a).fracDigits
+	scale := _ScaleTable[FRAC]
 	return f64(a.i) / f64(scale)
 }
 
-length2 :: proc "contextless" (ab: [2]BCD($FRAC_DIGITS)) -> BCD(FRAC_DIGITS) {
+length2 :: proc "contextless" (ab: [2]BCD($fracDigits)) -> BCD(fracDigits) {
 	dx := ab.x
 	dy := ab.y
 	return add(mul(dx, dx), mul(dy, dy))
 }
 
-inf_min :: proc "contextless" ($FRAC_DIGITS: int) -> BCD(FRAC_DIGITS) {
-	return BCD(FRAC_DIGITS){i = min(i128)}
+infMin :: proc "contextless" ($fracDigits: int) -> BCD(fracDigits) {
+	return BCD(fracDigits){i = min(i128)}
 }
-inf_max :: proc "contextless" ($FRAC_DIGITS: int) -> BCD(FRAC_DIGITS) {
-	return BCD(FRAC_DIGITS){i = max(i128)}
+infMax :: proc "contextless" ($fracDigits: int) -> BCD(fracDigits) {
+	return BCD(fracDigits){i = max(i128)}
 }
 
 //a*b ? c*d
-compare_product :: proc "contextless" (
-	a: BCD($FRAC_DIGITS),
-	b: BCD(FRAC_DIGITS),
-	c: BCD(FRAC_DIGITS),
-	d: BCD(FRAC_DIGITS),
+compareProduct :: proc "contextless" (
+	a: BCD($fracDigits),
+	b: BCD(fracDigits),
+	c: BCD(fracDigits),
+	d: BCD(fracDigits),
 ) -> int {
 	if (c.i == 0 || d.i == 0) && (b.i == 0 || a.i == 0) do return 0
 

@@ -4,7 +4,7 @@ import "base:intrinsics"
 import "base:runtime"
 
 @(require_results)
-make_non_zeroed_slice :: #force_inline proc(
+makeNonZeroedSlice :: #force_inline proc(
 	$T: typeid/[]$E,
 	#any_int len: int,
 	allocator := context.allocator,
@@ -25,7 +25,7 @@ make_non_zeroed_slice :: #force_inline proc(
 }
 
 @(require_results)
-new_non_zeroed :: proc(
+newNonZeroed :: proc(
 	$T: typeid,
 	allocator := context.allocator,
 	loc := #caller_location,
@@ -40,7 +40,7 @@ new_non_zeroed :: proc(
 }
 
 @(require_results)
-make_non_zeroed_dynamic_array_len_cap :: #force_inline proc(
+makeNonZeroedDynamicArrayLenCap :: #force_inline proc(
 	$T: typeid/[dynamic]$E,
 	#any_int len, cap: int,
 	allocator := context.allocator,
@@ -53,14 +53,14 @@ make_non_zeroed_dynamic_array_len_cap :: #force_inline proc(
 	array := (^runtime.Raw_Dynamic_Array)(&res)
 	array.allocator = allocator // initialize allocator before just in case it fails to allocate any memory
 	data := runtime.mem_alloc_non_zeroed(size_of(E) * cap, align_of(E), allocator, loc) or_return
-	use_zero := data == nil && size_of(E) != 0
+	useZero := data == nil && size_of(E) != 0
 	array.data = raw_data(data)
-	array.len = 0 if use_zero else len
-	array.cap = 0 if use_zero else cap
+	array.len = 0 if useZero else len
+	array.cap = 0 if useZero else cap
 	return
 }
 
-non_zero_resize_dynamic_array :: proc(
+nonZeroResizeDynamicArray :: proc(
 	array: ^$T/[dynamic]$E,
 	#any_int length: int,
 	loc := #caller_location,
@@ -75,11 +75,11 @@ non_zero_resize_dynamic_array :: proc(
 	)
 }
 
-_resize_slice :: #force_no_inline proc(
+_resizeSlice :: #force_no_inline proc(
 	a: ^runtime.Raw_Slice,
-	size_of_elem, align_of_elem: int,
+	sizeOfElem, alignOfElem: int,
 	length: int,
-	should_zero: bool,
+	shouldZero: bool,
 	allocator: runtime.Allocator,
 	loc := #caller_location,
 ) -> runtime.Allocator_Error {
@@ -87,52 +87,52 @@ _resize_slice :: #force_no_inline proc(
 		return nil
 	}
 
-	old_size := a.len * size_of_elem
-	new_size := length * size_of_elem
+	oldSize := a.len * sizeOfElem
+	newSize := length * sizeOfElem
 
-	new_data: []byte
-	if should_zero {
-		new_data = runtime.mem_resize(
+	newData: []byte
+	if shouldZero {
+		newData = runtime.mem_resize(
 			a.data,
-			old_size,
-			new_size,
-			align_of_elem,
+			oldSize,
+			newSize,
+			alignOfElem,
 			allocator,
 			loc,
 		) or_return
 	} else {
-		new_data = runtime.non_zero_mem_resize(
+		newData = runtime.non_zero_mem_resize(
 			a.data,
-			old_size,
-			new_size,
-			align_of_elem,
+			oldSize,
+			newSize,
+			alignOfElem,
 			allocator,
 			loc,
 		) or_return
 	}
-	if new_data == nil && new_size > 0 {
+	if newData == nil && newSize > 0 {
 		return .Out_Of_Memory
 	}
 
-	a.data = raw_data(new_data)
+	a.data = raw_data(newData)
 
-	if should_zero && a.len < length {
+	if shouldZero && a.len < length {
 		intrinsics.mem_zero(
-			([^]byte)(a.data)[a.len * size_of_elem:],
-			(length - a.len) * size_of_elem,
+			([^]byte)(a.data)[a.len * sizeOfElem:],
+			(length - a.len) * sizeOfElem,
 		)
 	}
 	a.len = length
 	return nil
 }
 
-non_zero_resize_slice :: proc(
+nonZeroResizeSlice :: proc(
 	slice: ^$T/[]$E,
 	#any_int length: int,
 	allocator := context.allocator,
 	loc := #caller_location,
 ) -> runtime.Allocator_Error {
-	return _resize_slice(
+	return _resizeSlice(
 		(^runtime.Raw_Slice)(slice),
 		size_of(E),
 		align_of(E),
@@ -143,13 +143,13 @@ non_zero_resize_slice :: proc(
 	)
 }
 
-resize_slice :: proc(
+resizeSlice :: proc(
 	slice: ^$T/[]$E,
 	#any_int length: int,
 	allocator := context.allocator,
 	loc := #caller_location,
 ) -> runtime.Allocator_Error {
-	return _resize_slice(
+	return _resizeSlice(
 		(^runtime.Raw_Slice)(slice),
 		size_of(E),
 		align_of(E),
@@ -162,7 +162,7 @@ resize_slice :: proc(
 
 // digit-by-digit integer sqrt (port of C sqrt_i64) https://github.com/chmike/fpsqrt
 @(require_results)
-sqrt_64 :: #force_inline proc "contextless" (v: $T) -> T where intrinsics.type_is_integer(T) {
+sqrt64 :: #force_inline proc "contextless" (v: $T) -> T where intrinsics.type_is_integer(T) {
 	b := u64(1) << u64(62)
 	q: u64 = 0
 	r := u64(v)
@@ -180,7 +180,7 @@ sqrt_64 :: #force_inline proc "contextless" (v: $T) -> T where intrinsics.type_i
 }
 
 @(require_results)
-sqrt_32 :: #force_inline proc "contextless" (v: $T) -> T where intrinsics.type_is_integer(T) {
+sqrt32 :: #force_inline proc "contextless" (v: $T) -> T where intrinsics.type_is_integer(T) {
 	b := u32(1) << u32(30)
 	q: u32 = 0
 	r := u32(v)
@@ -198,7 +198,7 @@ sqrt_32 :: #force_inline proc "contextless" (v: $T) -> T where intrinsics.type_i
 }
 
 @(require_results)
-sqrt_128 :: #force_inline proc "contextless" (v: $T) -> T where intrinsics.type_is_integer(T) {
+sqrt128 :: #force_inline proc "contextless" (v: $T) -> T where intrinsics.type_is_integer(T) {
 	b := u128(1) << u128(126)
 	q: u128 = 0
 	r := u128(v)
@@ -215,8 +215,8 @@ sqrt_128 :: #force_inline proc "contextless" (v: $T) -> T where intrinsics.type_
 	return T(q)
 }
 
-// `inject_at_elem` injects an element in a dynamic array at a specified index and moves the previous elements after that index "across"
-non_zero_inject_at_elem :: proc(
+// `injectAtElem` injects an element in a dynamic array at a specified index and moves the previous elements after that index "across"
+nonZeroInjectAtElem :: proc(
 	array: ^$T/[dynamic]$E,
 	#any_int index: int,
 	#no_broadcast arg: E,
@@ -233,9 +233,9 @@ non_zero_inject_at_elem :: proc(
 	}
 	n := max(len(array), index)
 	m :: 1
-	new_size := n + m
+	newSize := n + m
 
-	non_zero_resize_dynamic_array(array, new_size, loc) or_return
+	nonZeroResizeDynamicArray(array, newSize, loc) or_return
 	when size_of(E) != 0 {
 		copy(array[index + m:], array[index:])
 		array[index] = arg
@@ -244,8 +244,8 @@ non_zero_inject_at_elem :: proc(
 	return
 }
 
-// `inject_at_elems` injects multiple elements in a dynamic array at a specified index and moves the previous elements after that index "across"
-non_zero_inject_at_elems :: proc(
+// `injectAtElems` injects multiple elements in a dynamic array at a specified index and moves the previous elements after that index "across"
+nonZeroInjectAtElems :: proc(
 	array: ^$T/[dynamic]$E,
 	#any_int index: int,
 	#no_broadcast args: ..E,
@@ -267,9 +267,9 @@ non_zero_inject_at_elems :: proc(
 
 	n := max(len(array), index)
 	m := len(args)
-	new_size := n + m
+	newSize := n + m
 
-	non_zero_resize_dynamic_array(array, new_size, loc) or_return
+	nonZeroResizeDynamicArray(array, newSize, loc) or_return
 	when size_of(E) != 0 {
 		copy(array[index + m:], array[index:])
 		copy(array[index:], args)
@@ -279,7 +279,7 @@ non_zero_inject_at_elems :: proc(
 }
 
 @(require_results)
-ceil_up :: proc "contextless" (num: $T, multiple: T) -> T where intrinsics.type_is_integer(T) {
+ceilUp :: proc "contextless" (num: $T, multiple: T) -> T where intrinsics.type_is_integer(T) {
 	if multiple == 0 do return num
 
 	remain := abs(num) % multiple
@@ -289,7 +289,7 @@ ceil_up :: proc "contextless" (num: $T, multiple: T) -> T where intrinsics.type_
 	return num + multiple - remain
 }
 @(require_results)
-floor_up :: proc "contextless" (num: $T, multiple: T) -> T where intrinsics.type_is_integer(T) {
+floorUp :: proc "contextless" (num: $T, multiple: T) -> T where intrinsics.type_is_integer(T) {
 	if multiple == 0 do return num
 
 	remain := abs(num) % multiple
@@ -299,7 +299,7 @@ floor_up :: proc "contextless" (num: $T, multiple: T) -> T where intrinsics.type
 	return num - remain
 }
 @(require_results)
-min_array :: proc "contextless" (
+minArray :: proc "contextless" (
 	value0: $T/[$N]$E,
 	value1: T,
 ) -> (
@@ -313,7 +313,7 @@ min_array :: proc "contextless" (
 	return
 }
 @(require_results)
-max_array :: proc "contextless" (
+maxArray :: proc "contextless" (
 	value0: $T/[$N]$E,
 	value1: T,
 ) -> (

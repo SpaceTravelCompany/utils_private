@@ -9,37 +9,37 @@ import "core:testing"
 //
 // - Single-threaded, no locks
 // - No magic / debug validation on hot paths
-// - Small: class 0..NUM_CLASSES-1, free-list + segment bump
-// - Large: class == LARGE_CLASS (NUM_CLASSES), separate virtual mapping
+// - Small: class 0..NumClasses-1, free-list + segment bump
+// - Large: class == LargeClass (NumClasses), separate virtual mapping
 // ============================================================
 
-ALIGNMENT: uintptr : 16
-MIN_SIZE: uintptr : 16
-TINY_MAX_SIZE: uintptr : 256
-SMALL_MAX_SIZE: uintptr : 4096
-MAX_SLAB_SIZE: uintptr : 64 * mem.Kilobyte
-SEGMENT_SIZE: uintptr : 8 * mem.Megabyte
+alignment: uintptr : 16
+minSize: uintptr : 16
+tinyMaxSize: uintptr : 256
+smallMaxSize: uintptr : 4096
+maxSlabSize: uintptr : 64 * mem.Kilobyte
+segmentSize: uintptr : 8 * mem.Megabyte
 
-TINY_CLASS_STEP: uintptr : 16
-SMALL_CLASS_STEP: uintptr : 256
-MEDIUM_CLASS_STEP: uintptr : 4 * mem.Kilobyte
+tinyClassStep: uintptr : 16
+smallClassStep: uintptr : 256
+mediumClassStep: uintptr : 4 * mem.Kilobyte
 
-TINY_CLASS_COUNT :: TINY_MAX_SIZE / TINY_CLASS_STEP
-SMALL_CLASS_COUNT :: 16
-MEDIUM_CLASS_COUNT :: 16
-NUM_CLASSES :: TINY_CLASS_COUNT + SMALL_CLASS_COUNT + MEDIUM_CLASS_COUNT
-LARGE_CLASS :: u16(NUM_CLASSES)
+TinyClassCount :: tinyMaxSize / tinyClassStep
+SmallClassCount :: 16
+MediumClassCount :: 16
+NumClasses :: TinyClassCount + SmallClassCount + MediumClassCount
+LargeClass :: u16(NumClasses)
 
 @(private)
-Allocation_Header :: struct {
+AllocationHeader :: struct {
 	class:         u16,
 	_pad:          u16,
-	raw_base:      rawptr,
-	reserved_size: uintptr,
+	rawBase:      rawptr,
+	reservedSize: uintptr,
 }
 
 @(private)
-HEADER_SIZE: uintptr : ((size_of(Allocation_Header) + ALIGNMENT - 1) / ALIGNMENT) * ALIGNMENT
+headerSize: uintptr : ((size_of(AllocationHeader) + alignment - 1) / alignment) * alignment
 
 @(private)
 Node :: struct {
@@ -51,14 +51,14 @@ Segment :: struct {
 	next:          ^Segment,
 	size:          uintptr,
 	cursor:        uintptr,
-	payload_start: uintptr,
-	payload_limit: uintptr,
+	payloadStart: uintptr,
+	payloadLimit: uintptr,
 }
 
 SFL :: struct {
-	free_lists: [NUM_CLASSES]^Node,
-	seg_head:   ^Segment,
-	seg_size:   uintptr,
+	freeLists: [NumClasses]^Node,
+	segHead:   ^Segment,
+	segSize:   uintptr,
 }
 
 // ============================================================
@@ -66,59 +66,59 @@ SFL :: struct {
 // ============================================================
 
 @(private)
-align_up :: #force_inline proc(x, alignment: uintptr) -> uintptr {
-	return mem.align_forward_uintptr(x, alignment)
+alignUp :: #force_inline proc(x, algn: uintptr) -> uintptr {
+	return mem.align_forward_uintptr(x, algn)
 }
 
 @(private)
-size_to_class :: #force_inline proc "contextless" (size: uintptr) -> uintptr {
-	if size < TINY_MAX_SIZE {
-		return ((size + TINY_CLASS_STEP - 1) / TINY_CLASS_STEP) - 1
+sizeToClass :: #force_inline proc "contextless" (size: uintptr) -> uintptr {
+	if size < tinyMaxSize {
+		return ((size + tinyClassStep - 1) / tinyClassStep) - 1
 	}
-	if size < SMALL_MAX_SIZE {
+	if size < smallMaxSize {
 		return(
-			TINY_CLASS_COUNT +
-			((size - TINY_MAX_SIZE + SMALL_CLASS_STEP - 1) / SMALL_CLASS_STEP) \
+			TinyClassCount +
+			((size - tinyMaxSize + smallClassStep - 1) / smallClassStep) \
 		)
 	}
 	return(
-		TINY_CLASS_COUNT +
-		SMALL_CLASS_COUNT +
-		((size - SMALL_MAX_SIZE + MEDIUM_CLASS_STEP - 1) / MEDIUM_CLASS_STEP) \
+		TinyClassCount +
+		SmallClassCount +
+		((size - smallMaxSize + mediumClassStep - 1) / mediumClassStep) \
 	)
 }
 
 @(private)
-class_to_size :: #force_inline proc "contextless" (class: uintptr) -> uintptr {
-	if class < TINY_CLASS_COUNT {
-		return (class + 1) * TINY_CLASS_STEP
+classToSize :: #force_inline proc "contextless" (class: uintptr) -> uintptr {
+	if class < TinyClassCount {
+		return (class + 1) * tinyClassStep
 	}
-	if class < TINY_CLASS_COUNT + SMALL_CLASS_COUNT {
-		return TINY_MAX_SIZE + (class - TINY_CLASS_COUNT) * SMALL_CLASS_STEP
+	if class < TinyClassCount + SmallClassCount {
+		return tinyMaxSize + (class - TinyClassCount) * smallClassStep
 	}
-	return SMALL_MAX_SIZE + (class - TINY_CLASS_COUNT - SMALL_CLASS_COUNT) * MEDIUM_CLASS_STEP
+	return smallMaxSize + (class - TinyClassCount - SmallClassCount) * mediumClassStep
 }
 
 @(private)
-ptr_header :: #force_inline proc "contextless" (ptr: rawptr) -> ^Allocation_Header {
-	return (^Allocation_Header)(uintptr(ptr) - HEADER_SIZE)
+ptrHeader :: #force_inline proc "contextless" (ptr: rawptr) -> ^AllocationHeader {
+	return (^AllocationHeader)(uintptr(ptr) - headerSize)
 }
 
 @(private)
-slot_base :: #force_inline proc "contextless" (ptr: rawptr) -> rawptr {
-	return rawptr(uintptr(ptr) - HEADER_SIZE)
+slotBase :: #force_inline proc "contextless" (ptr: rawptr) -> rawptr {
+	return rawptr(uintptr(ptr) - headerSize)
 }
 
 @(private)
-segment_init_payload_bounds :: #force_inline proc(seg: ^Segment) {
-	seg.payload_start = mem.align_forward_uintptr(uintptr(seg) + size_of(Segment), ALIGNMENT)
-	seg.payload_limit = uintptr(seg) + seg.size
+segmentInitPayloadBounds :: #force_inline proc(seg: ^Segment) {
+	seg.payloadStart = mem.align_forward_uintptr(uintptr(seg) + size_of(Segment), alignment)
+	seg.payloadLimit = uintptr(seg) + seg.size
 }
 
 @(private)
-os_alloc :: proc(size: uintptr) -> rawptr {
-	aligned_size := align_up(size, uintptr(virtual.DEFAULT_PAGE_SIZE))
-	data, err := virtual.reserve_and_commit(uint(aligned_size))
+osAlloc :: proc(size: uintptr) -> rawptr {
+	alignedSize := alignUp(size, uintptr(virtual.DEFAULT_PAGE_SIZE))
+	data, err := virtual.reserve_and_commit(uint(alignedSize))
 	if err != nil {
 		return nil
 	}
@@ -126,84 +126,84 @@ os_alloc :: proc(size: uintptr) -> rawptr {
 }
 
 @(private)
-os_free :: #force_inline proc(raw: rawptr, size: uintptr) {
-	virtual.release(raw, uint(align_up(size, uintptr(virtual.DEFAULT_PAGE_SIZE))))
+osFree :: #force_inline proc(raw: rawptr, size: uintptr) {
+	virtual.release(raw, uint(alignUp(size, uintptr(virtual.DEFAULT_PAGE_SIZE))))
 }
 
 @(private)
-seg_bump_alloc :: #force_inline proc(seg: ^Segment, block_size: uintptr) -> rawptr {
-	cursor := align_up(seg.cursor, ALIGNMENT)
-	end := cursor + block_size
-	if end > seg.payload_limit - seg.payload_start {
+segBumpAlloc :: #force_inline proc(seg: ^Segment, blockSize: uintptr) -> rawptr {
+	cursor := alignUp(seg.cursor, alignment)
+	end := cursor + blockSize
+	if end > seg.payloadLimit - seg.payloadStart {
 		return nil
 	}
-	base := rawptr(seg.payload_start + cursor)
+	base := rawptr(seg.payloadStart + cursor)
 	seg.cursor = end
 	return base
 }
 
 @(private)
-new_segment :: proc(g: ^SFL, min_block: uintptr) -> ^Segment {
-	seg_size := g.seg_size
-	if seg_size == 0 {
-		seg_size = SEGMENT_SIZE
+newSegment :: proc(g: ^SFL, minBlock: uintptr) -> ^Segment {
+	segSz := g.segSize
+	if segSz == 0 {
+		segSz = segmentSize
 	}
 
-	needed := min_block + size_of(Segment) + ALIGNMENT
-	for seg_size < needed {
-		seg_size *= 2
+	needed := minBlock + size_of(Segment) + alignment
+	for segSz < needed {
+		segSz *= 2
 	}
-	seg_size = align_up(seg_size, uintptr(virtual.DEFAULT_PAGE_SIZE))
+	segSz = alignUp(segSz, uintptr(virtual.DEFAULT_PAGE_SIZE))
 
-	raw := os_alloc(seg_size)
+	raw := osAlloc(segSz)
 	if raw == nil {
 		return nil
 	}
 
 	seg := (^Segment)(raw)
-	seg.next = g.seg_head
-	seg.size = seg_size
+	seg.next = g.segHead
+	seg.size = segSz
 	seg.cursor = 0
-	segment_init_payload_bounds(seg)
-	g.seg_head = seg
+	segmentInitPayloadBounds(seg)
+	g.segHead = seg
 	return seg
 }
 
 @(private)
-free_segment :: proc(seg: ^Segment) {
-	os_free(rawptr(seg), seg.size)
+freeSegment :: proc(seg: ^Segment) {
+	osFree(rawptr(seg), seg.size)
 }
 
 @(private)
-write_small_header :: #force_inline proc(ptr: rawptr, class: u16) {
-	ptr_header(ptr).class = class
+writeSmallHeader :: #force_inline proc(ptr: rawptr, class: u16) {
+	ptrHeader(ptr).class = class
 }
 
 @(private)
-write_large_header :: #force_inline proc(ptr: rawptr, raw: rawptr, reserved: uintptr) {
-	h := ptr_header(ptr)
-	h.class = LARGE_CLASS
-	h.raw_base = raw
-	h.reserved_size = reserved
+writeLargeHeader :: #force_inline proc(ptr: rawptr, raw: rawptr, reserved: uintptr) {
+	h := ptrHeader(ptr)
+	h.class = LargeClass
+	h.rawBase = raw
+	h.reservedSize = reserved
 }
 
 @(private)
-alloc_small :: proc(g: ^SFL, size: uintptr) -> rawptr {
-	class := size_to_class(max(size, MIN_SIZE))
-	block_size := HEADER_SIZE + class_to_size(class)
+allocSmall :: proc(g: ^SFL, size: uintptr) -> rawptr {
+	class := sizeToClass(max(size, minSize))
+	blockSize := headerSize + classToSize(class)
 
-	head := g.free_lists[class]
+	head := g.freeLists[class]
 	base: rawptr
 	if head != nil {
-		g.free_lists[class] = head.next
+		g.freeLists[class] = head.next
 		base = rawptr(head)
 	} else {
-		base = seg_bump_alloc(g.seg_head, block_size)
+		base = segBumpAlloc(g.segHead, blockSize)
 		if base == nil {
-			if new_segment(g, block_size) == nil {
+			if newSegment(g, blockSize) == nil {
 				return nil
 			}
-			base = seg_bump_alloc(g.seg_head, block_size)
+			base = segBumpAlloc(g.segHead, blockSize)
 		}
 	}
 
@@ -211,23 +211,23 @@ alloc_small :: proc(g: ^SFL, size: uintptr) -> rawptr {
 		return nil
 	}
 
-	ptr := rawptr(uintptr(base) + HEADER_SIZE)
-	write_small_header(ptr, u16(class))
+	ptr := rawptr(uintptr(base) + headerSize)
+	writeSmallHeader(ptr, u16(class))
 	return ptr
 }
 
 @(private)
-alloc_large :: proc(size, alignment: uintptr) -> rawptr {
-	requested_alignment := max(alignment, ALIGNMENT)
-	total := HEADER_SIZE + size + requested_alignment - 1
-	reserved_size := align_up(total, uintptr(virtual.DEFAULT_PAGE_SIZE))
-	raw := os_alloc(reserved_size)
+allocLarge :: proc(size, algn: uintptr) -> rawptr {
+	requestedAlignment := max(algn, alignment)
+	total := headerSize + size + requestedAlignment - 1
+	reservedSize := alignUp(total, uintptr(virtual.DEFAULT_PAGE_SIZE))
+	raw := osAlloc(reservedSize)
 	if raw == nil {
 		return nil
 	}
 
-	ptr := rawptr(mem.align_forward_uintptr(uintptr(raw) + HEADER_SIZE, requested_alignment))
-	write_large_header(ptr, raw, reserved_size)
+	ptr := rawptr(mem.align_forward_uintptr(uintptr(raw) + headerSize, requestedAlignment))
+	writeLargeHeader(ptr, raw, reservedSize)
 	return ptr
 }
 
@@ -235,98 +235,98 @@ alloc_large :: proc(size, alignment: uintptr) -> rawptr {
 // Public API
 // ============================================================
 
-init :: proc(g: ^SFL, segment_size: uintptr = SEGMENT_SIZE) -> bool {
+init :: proc(g: ^SFL, segSz: uintptr = segmentSize) -> bool {
 	g^ = {}
-	g.seg_size = align_up(max(segment_size, 4096), uintptr(virtual.DEFAULT_PAGE_SIZE))
-	return new_segment(g, 0) != nil
+	g.segSize = alignUp(max(segSz, 4096), uintptr(virtual.DEFAULT_PAGE_SIZE))
+	return newSegment(g, 0) != nil
 }
 
 destroy :: proc(g: ^SFL) {
-	for seg := g.seg_head; seg != nil; {
+	for seg := g.segHead; seg != nil; {
 		next := seg.next
-		free_segment(seg)
+		freeSegment(seg)
 		seg = next
 	}
 	g^ = {}
 }
 
-alloc :: #force_inline proc(g: ^SFL, size: uintptr, alignment: uintptr = ALIGNMENT) -> rawptr {
-	if alignment <= ALIGNMENT && size <= MAX_SLAB_SIZE {
-		return alloc_small(g, size)
+alloc :: #force_inline proc(g: ^SFL, size: uintptr, algn: uintptr = alignment) -> rawptr {
+	if algn <= alignment && size <= maxSlabSize {
+		return allocSmall(g, size)
 	}
-	return alloc_large(size, alignment)
+	return allocLarge(size, algn)
 }
 
 free :: #force_inline proc(g: ^SFL, ptr: rawptr) {
-	h := ptr_header(ptr)
-	if h.class >= LARGE_CLASS {
-		os_free(h.raw_base, h.reserved_size)
+	h := ptrHeader(ptr)
+	if h.class >= LargeClass {
+		osFree(h.rawBase, h.reservedSize)
 		return
 	}
 	class := int(h.class)
-	node := (^Node)(slot_base(ptr))
-	node.next = g.free_lists[class]
-	g.free_lists[class] = node
+	node := (^Node)(slotBase(ptr))
+	node.next = g.freeLists[class]
+	g.freeLists[class] = node
 }
 
 resize :: proc(
 	g: ^SFL,
 	ptr: rawptr,
-	old_size, new_size: uintptr,
-	alignment: uintptr = ALIGNMENT,
+	oldSize, newSize: uintptr,
+	algn: uintptr = alignment,
 ) -> rawptr {
 	if ptr == nil {
-		return alloc(g, new_size, alignment)
+		return alloc(g, newSize, algn)
 	}
-	if new_size == 0 {
+	if newSize == 0 {
 		free(g, ptr)
 		return nil
 	}
 
-	h := ptr_header(ptr)
-	if h.class >= LARGE_CLASS {
-		if new_size <= h.reserved_size - HEADER_SIZE {
+	h := ptrHeader(ptr)
+	if h.class >= LargeClass {
+		if newSize <= h.reservedSize - headerSize {
 			return ptr
 		}
-	} else if alignment <= ALIGNMENT {
-		if new_size <= class_to_size(uintptr(h.class)) {
+	} else if algn <= alignment {
+		if newSize <= classToSize(uintptr(h.class)) {
 			return ptr
 		}
 	}
 
-	new_ptr := alloc(g, new_size, alignment)
-	if new_ptr == nil {
+	newPtr := alloc(g, newSize, algn)
+	if newPtr == nil {
 		return nil
 	}
 
-	copy_size := min(old_size, new_size)
-	if new_ptr != ptr && copy_size > 0 {
-		mem.copy_non_overlapping(new_ptr, ptr, int(copy_size))
+	copySize := min(oldSize, newSize)
+	if newPtr != ptr && copySize > 0 {
+		mem.copy_non_overlapping(newPtr, ptr, int(copySize))
 	}
 	free(g, ptr)
-	return new_ptr
+	return newPtr
 }
 
 // ============================================================
 // Odin Allocator Interface
 // ============================================================
 
-allocator_proc :: proc(
-	allocator_data: rawptr,
+allocatorProc :: proc(
+	allocatorData: rawptr,
 	mode: mem.Allocator_Mode,
-	size, alignment: int,
-	old_memory: rawptr,
-	old_size: int,
+	size, algn: int,
+	oldMemory: rawptr,
+	oldSize: int,
 	loc := #caller_location,
 ) -> (
 	data: []byte,
 	err: mem.Allocator_Error,
 ) {
-	g := (^SFL)(allocator_data)
+	g := (^SFL)(allocatorData)
 
 	#partial switch mode {
 	case .Alloc:
-		ptr := alloc(g, uintptr(size), uintptr(alignment))
+		ptr := alloc(g, uintptr(size), uintptr(algn))
 		if ptr == nil {
 			return nil, .Out_Of_Memory
 		}
@@ -334,34 +334,34 @@ allocator_proc :: proc(
 		return mem.byte_slice(ptr, size), nil
 
 	case .Alloc_Non_Zeroed:
-		ptr := alloc(g, uintptr(size), uintptr(alignment))
+		ptr := alloc(g, uintptr(size), uintptr(algn))
 		if ptr == nil {
 			return nil, .Out_Of_Memory
 		}
 		return mem.byte_slice(ptr, size), nil
 
 	case .Free:
-		if old_memory != nil {
-			free(g, old_memory)
+		if oldMemory != nil {
+			free(g, oldMemory)
 		}
 
 	case .Free_All:
-		seg_size := g.seg_size
+		segSz := g.segSize
 		destroy(g)
-		init(g, seg_size)
+		init(g, segSz)
 
 	case .Resize, .Resize_Non_Zeroed:
-		ptr := resize(g, old_memory, uintptr(old_size), uintptr(size), uintptr(alignment))
+		ptr := resize(g, oldMemory, uintptr(oldSize), uintptr(size), uintptr(algn))
 		if ptr == nil && size > 0 {
 			return nil, .Out_Of_Memory
 		}
-		if mode == .Resize && ptr != nil && size > old_size {
-			mem.zero(rawptr(uintptr(ptr) + uintptr(old_size)), size - old_size)
+		if mode == .Resize && ptr != nil && size > oldSize {
+			mem.zero(rawptr(uintptr(ptr) + uintptr(oldSize)), size - oldSize)
 		}
 		return mem.byte_slice(ptr, size), nil
 
 	case .Query_Features:
-		set := (^mem.Allocator_Mode_Set)(old_memory)
+		set := (^mem.Allocator_Mode_Set)(oldMemory)
 		if set != nil {
 			set^ = {
 				.Alloc,
@@ -381,7 +381,7 @@ allocator_proc :: proc(
 }
 
 allocator :: #force_inline proc(g: ^SFL) -> mem.Allocator {
-	return {procedure = allocator_proc, data = g}
+	return {procedure = allocatorProc, data = g}
 }
 
 // ============================================================
@@ -389,31 +389,31 @@ allocator :: #force_inline proc(g: ^SFL) -> mem.Allocator {
 // ============================================================
 
 @(test)
-test_class_mapping :: proc(t: ^testing.T) {
-	testing.expect_value(t, NUM_CLASSES, 48)
-	testing.expect_value(t, size_to_class(1), 0)
-	testing.expect_value(t, size_to_class(16), 0)
-	testing.expect_value(t, size_to_class(17), 1)
-	testing.expect_value(t, size_to_class(255), 15)
-	testing.expect_value(t, size_to_class(256), 16)
-	testing.expect_value(t, size_to_class(257), 17)
-	testing.expect_value(t, size_to_class(4095), 31)
-	testing.expect_value(t, size_to_class(4096), 32)
-	testing.expect_value(t, size_to_class(4097), 33)
-	testing.expect_value(t, size_to_class(64 * mem.Kilobyte), 47)
+testClassMapping :: proc(t: ^testing.T) {
+	testing.expect_value(t, NumClasses, 48)
+	testing.expect_value(t, sizeToClass(1), 0)
+	testing.expect_value(t, sizeToClass(16), 0)
+	testing.expect_value(t, sizeToClass(17), 1)
+	testing.expect_value(t, sizeToClass(255), 15)
+	testing.expect_value(t, sizeToClass(256), 16)
+	testing.expect_value(t, sizeToClass(257), 17)
+	testing.expect_value(t, sizeToClass(4095), 31)
+	testing.expect_value(t, sizeToClass(4096), 32)
+	testing.expect_value(t, sizeToClass(4097), 33)
+	testing.expect_value(t, sizeToClass(64 * mem.Kilobyte), 47)
 
-	testing.expect_value(t, class_to_size(0), 16)
-	testing.expect_value(t, class_to_size(15), 256)
-	testing.expect_value(t, class_to_size(16), 256)
-	testing.expect_value(t, class_to_size(17), 512)
-	testing.expect_value(t, class_to_size(31), 4096)
-	testing.expect_value(t, class_to_size(32), 4096)
-	testing.expect_value(t, class_to_size(33), 8192)
-	testing.expect_value(t, class_to_size(47), 64 * mem.Kilobyte)
+	testing.expect_value(t, classToSize(0), 16)
+	testing.expect_value(t, classToSize(15), 256)
+	testing.expect_value(t, classToSize(16), 256)
+	testing.expect_value(t, classToSize(17), 512)
+	testing.expect_value(t, classToSize(31), 4096)
+	testing.expect_value(t, classToSize(32), 4096)
+	testing.expect_value(t, classToSize(33), 8192)
+	testing.expect_value(t, classToSize(47), 64 * mem.Kilobyte)
 }
 
 @(test)
-test_small_alloc_free_reuse :: proc(t: ^testing.T) {
+testSmallAllocFreeReuse :: proc(t: ^testing.T) {
 	g: SFL
 	testing.expect(t, init(&g, 4096))
 	defer destroy(&g)
@@ -422,7 +422,7 @@ test_small_alloc_free_reuse :: proc(t: ^testing.T) {
 	b := alloc(&g, 32)
 	testing.expect(t, a != nil)
 	testing.expect(t, b != nil)
-	testing.expect(t, uintptr(a) % ALIGNMENT == 0)
+	testing.expect(t, uintptr(a) % alignment == 0)
 	free(&g, a)
 	c := alloc(&g, 32)
 	testing.expect_value(t, c, a)
@@ -431,7 +431,7 @@ test_small_alloc_free_reuse :: proc(t: ^testing.T) {
 }
 
 @(test)
-test_large_alloc_individual_free :: proc(t: ^testing.T) {
+testLargeAllocIndividualFree :: proc(t: ^testing.T) {
 	g: SFL
 	testing.expect(t, init(&g, 4096))
 	defer destroy(&g)
@@ -448,7 +448,7 @@ test_large_alloc_individual_free :: proc(t: ^testing.T) {
 }
 
 @(test)
-test_overaligned_uses_large_path :: proc(t: ^testing.T) {
+testOveralignedUsesLargePath :: proc(t: ^testing.T) {
 	g: SFL
 	testing.expect(t, init(&g, 4096))
 	defer destroy(&g)
@@ -460,14 +460,14 @@ test_overaligned_uses_large_path :: proc(t: ^testing.T) {
 }
 
 @(test)
-test_allocator_interface :: proc(t: ^testing.T) {
+testAllocatorInterface :: proc(t: ^testing.T) {
 	g: SFL
 	testing.expect(t, init(&g, 4096))
 	defer destroy(&g)
 
-	old_allocator := context.allocator
+	oldAllocator := context.allocator
 	context.allocator = allocator(&g)
-	defer context.allocator = old_allocator
+	defer context.allocator = oldAllocator
 
 	data := make([]byte, 128)
 	testing.expect(t, len(data) == 128)
@@ -479,15 +479,15 @@ test_allocator_interface :: proc(t: ^testing.T) {
 		data[i] = byte(i)
 	}
 
-	new_data, resize_err := mem.resize(
+	newData, resizeErr := mem.resize(
 		raw_data(data),
 		len(data),
 		4096,
 		align_of(byte),
 		context.allocator,
 	)
-	testing.expect_value(t, resize_err, nil)
-	data = mem.byte_slice(new_data, 4096)
+	testing.expect_value(t, resizeErr, nil)
+	data = mem.byte_slice(newData, 4096)
 	for i in 0 ..< 128 {
 		testing.expect_value(t, data[i], byte(i))
 	}
@@ -498,8 +498,8 @@ test_allocator_interface :: proc(t: ^testing.T) {
 }
 
 @(test)
-test_dynamic_array_append :: proc(t: ^testing.T) {
-	Scene_Entry :: struct {
+testDynamicArrayAppend :: proc(t: ^testing.T) {
+	SceneEntry :: struct {
 		vtable: rawptr,
 		imp:    rawptr,
 	}
@@ -508,23 +508,23 @@ test_dynamic_array_append :: proc(t: ^testing.T) {
 	testing.expect(t, init(&g, 4096))
 	defer destroy(&g)
 
-	old_allocator := context.allocator
+	oldAllocator := context.allocator
 	context.allocator = allocator(&g)
-	defer context.allocator = old_allocator
+	defer context.allocator = oldAllocator
 
-	scene, err := make([dynamic]Scene_Entry)
+	scene, err := make([dynamic]SceneEntry)
 	testing.expect_value(t, err, nil)
 	defer delete(scene)
 
 	for i in 0 ..< 64 {
-		_, append_err := append(&scene, Scene_Entry{})
-		testing.expectf(t, append_err == nil, "append failed at %v", i)
+		_, appendErr := append(&scene, SceneEntry{})
+		testing.expectf(t, appendErr == nil, "append failed at %v", i)
 	}
 	testing.expect_value(t, len(scene), 64)
 }
 
 @(test)
-test_stress :: proc(t: ^testing.T) {
+testStress :: proc(t: ^testing.T) {
 	Slot :: struct {
 		ptr:   rawptr,
 		size:  uintptr,
@@ -537,36 +537,36 @@ test_stress :: proc(t: ^testing.T) {
 
 	slots: [256]Slot
 	state: uintptr = 0x1234_5678
-	next_rand :: proc(state: ^uintptr) -> uintptr {
+	nextRand :: proc(state: ^uintptr) -> uintptr {
 		state^ = state^ * 1664525 + 1013904223
 		return state^
 	}
 
 	for step in 0 ..< 20000 {
-		idx := int(next_rand(&state) % len(slots))
-		if slots[idx].ptr != nil && (next_rand(&state) & 3) != 0 {
+		idx := int(nextRand(&state) % len(slots))
+		if slots[idx].ptr != nil && (nextRand(&state) & 3) != 0 {
 			free(&g, slots[idx].ptr)
 			slots[idx] = {}
 			continue
 		}
 
-		size := (next_rand(&state) % (96 * 1024)) + 1
-		alignment := ALIGNMENT
-		if (next_rand(&state) & 15) == 0 {
-			alignment = ALIGNMENT << (next_rand(&state) % 5)
+		size := (nextRand(&state) % (96 * 1024)) + 1
+		algn := alignment
+		if (nextRand(&state) & 15) == 0 {
+			algn = alignment << (nextRand(&state) % 5)
 		}
 
 		if slots[idx].ptr != nil {
-			new_ptr := resize(&g, slots[idx].ptr, slots[idx].size, size, slots[idx].align)
-			testing.expectf(t, new_ptr != nil, "resize failed at step %v", step)
-			testing.expect(t, uintptr(new_ptr) % slots[idx].align == 0)
-			slots[idx] = Slot{new_ptr, size, slots[idx].align}
+			newPtr := resize(&g, slots[idx].ptr, slots[idx].size, size, slots[idx].align)
+			testing.expectf(t, newPtr != nil, "resize failed at step %v", step)
+			testing.expect(t, uintptr(newPtr) % slots[idx].align == 0)
+			slots[idx] = Slot{newPtr, size, slots[idx].align}
 		} else {
-			ptr := alloc(&g, size, alignment)
+			ptr := alloc(&g, size, algn)
 			testing.expectf(t, ptr != nil, "alloc failed at step %v", step)
-			testing.expect(t, uintptr(ptr) % alignment == 0)
+			testing.expect(t, uintptr(ptr) % algn == 0)
 			mem.set(ptr, byte(idx), int(size))
-			slots[idx] = Slot{ptr, size, alignment}
+			slots[idx] = Slot{ptr, size, algn}
 		}
 	}
 

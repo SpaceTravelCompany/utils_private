@@ -6,54 +6,54 @@ import "core:testing"
 
 
 @(test)
-test_from_f64 :: proc(t: ^testing.T) {
-	a := from_f64(MAX_FRAC_DIGITS, math.PI)
-	fmt.println("[from_f64 π]", to_string(a, context.temp_allocator))
+testFromF64 :: proc(t: ^testing.T) {
+	a := fromF64(MaxFracDigits, math.PI)
+	fmt.println("[fromF64 π]", toString(a, context.temp_allocator))
 
-	testing.expect(t, to_f64(a) == math.PI)
+	testing.expect(t, toF64(a) == math.PI)
 }
 
 @(test)
-test_add :: proc(t: ^testing.T) {
-	a := init_const(2, 1334, 4, DEF_FRAC_DIGITS)
-	b := init_const(2, 1334, 4, DEF_FRAC_DIGITS)
+testAdd :: proc(t: ^testing.T) {
+	a := initConst(2, 1334, 4, DefFracDigits)
+	b := initConst(2, 1334, 4, DefFracDigits)
 	r := add(a, b)
-	fmt.println("[add] 2.1334 + 2.1334 =", to_string(r, context.temp_allocator))
+	fmt.println("[add] 2.1334 + 2.1334 =", toString(r, context.temp_allocator))
 }
 
 @(test)
-test_sub :: proc(t: ^testing.T) {
-	a := init_const(130, 0, 0, DEF_FRAC_DIGITS)
-	b := init_const(0, 1, 1, DEF_FRAC_DIGITS)
+testSub :: proc(t: ^testing.T) {
+	a := initConst(130, 0, 0, DefFracDigits)
+	b := initConst(0, 1, 1, DefFracDigits)
 	r := sub(a, b)
-	fmt.println("[sub] 130.0 - 0.1 =", to_string(r, context.temp_allocator))
+	fmt.println("[sub] 130.0 - 0.1 =", toString(r, context.temp_allocator))
 }
 
 @(test)
-test_sub_negative :: proc(t: ^testing.T) {
-	a := init_const(-133, 456, 3, DEF_FRAC_DIGITS)
-	b := init_const(130, 0, 0, DEF_FRAC_DIGITS)
+testSubNegative :: proc(t: ^testing.T) {
+	a := initConst(-133, 456, 3, DefFracDigits)
+	b := initConst(130, 0, 0, DefFracDigits)
 	r := sub(a, b)
-	fmt.println("[sub_negative] -133.456 - 130.0 =", to_string(r, context.temp_allocator))
+	fmt.println("[sub_negative] -133.456 - 130.0 =", toString(r, context.temp_allocator))
 }
 
 @(test)
-test_mul :: proc(t: ^testing.T) {
-	a := init_const(2, 1334, 4, DEF_FRAC_DIGITS)
-	b := init_const(2, 1334, 4, DEF_FRAC_DIGITS)
+testMul :: proc(t: ^testing.T) {
+	a := initConst(2, 1334, 4, DefFracDigits)
+	b := initConst(2, 1334, 4, DefFracDigits)
 	r := mul(a, b)
-	fmt.println("[mul] 2.1334 × 2.1334 =", to_string(r, context.temp_allocator))
+	fmt.println("[mul] 2.1334 × 2.1334 =", toString(r, context.temp_allocator))
 	fmt.println("[mul] 기댓값          = 4.55139556000000000")
 }
 
 @(test)
-test_mul_big :: proc(t: ^testing.T) {
-	a := init_const(9999999999, 12345, 5, DEF_FRAC_DIGITS)
-	b := init_const(9999999999, 12345, 5, DEF_FRAC_DIGITS)
+testMulBig :: proc(t: ^testing.T) {
+	a := initConst(9999999999, 12345, 5, DefFracDigits)
+	b := initConst(9999999999, 12345, 5, DefFracDigits)
 	r := mul(a, b)
 	fmt.println(
 		"[mul] 999999999999.12345 × 999999999999.12345 =",
-		to_string(r, context.temp_allocator),
+		toString(r, context.temp_allocator),
 	)
 	fmt.println(
 		"[mul] 기댓값                                  = 99999999998246900000.76833990250000000",
@@ -61,27 +61,26 @@ test_mul_big :: proc(t: ^testing.T) {
 }
 
 @(test)
-test_mul_max_frag :: proc(t: ^testing.T) {
-	a := init_const(9999, 99999999, 8, MAX_FRAC_DIGITS)
-	b := init_const(9999, 99999999, 8, MAX_FRAC_DIGITS)
+testMulMaxFrag :: proc(t: ^testing.T) {
+	a := initConst(9999, 99999999, 8, MaxFracDigits)
+	b := initConst(9999, 99999999, 8, MaxFracDigits)
 	r := mul(a, b)
-	fmt.println("[mul] 9999.99999999 × 9999.99999999 =", to_string(r, context.temp_allocator))
+	fmt.println("[mul] 9999.99999999 × 9999.99999999 =", toString(r, context.temp_allocator))
 	fmt.println("[mul] 기댓값                        = 99999999.99980000000000010")
 }
 
 @(test)
-test_mul_negative :: proc(t: ^testing.T) {
-	a := init_const(-2, 0, 0, MAX_FRAC_DIGITS)
-	b := init_const(3, 0, 0, MAX_FRAC_DIGITS)
+testMulNegative :: proc(t: ^testing.T) {
+	a := initConst(-2, 0, 0, MaxFracDigits)
+	b := initConst(3, 0, 0, MaxFracDigits)
 	r := mul(a, b)
-	fmt.println("[mul_negative] -2.0 × 3.0 =", to_string(r, context.temp_allocator))
+	fmt.println("[mul_negative] -2.0 × 3.0 =", toString(r, context.temp_allocator))
 }
 
 @(test)
-test_div :: proc(t: ^testing.T) {
-	a := init_const(9999999999999, 0, 0, DEF_FRAC_DIGITS)
-	b := init_const(10, 0, 0, DEF_FRAC_DIGITS)
+testDiv :: proc(t: ^testing.T) {
+	a := initConst(9999999999999, 0, 0, DefFracDigits)
+	b := initConst(10, 0, 0, DefFracDigits)
 	r := div(a, b)
-	fmt.println("[div] 9999999999999 / 10 =", to_string(r, context.temp_allocator))
+	fmt.println("[div] 9999999999999 / 10 =", toString(r, context.temp_allocator))
 }
-
